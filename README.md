@@ -84,6 +84,18 @@ decode SIGMET/HSD observations or test real-data interpolation. To run a wrapper
 another working directory, pass its absolute path. The package and console entry point
 are defined in `pyproject.toml`; editable installation remains to be verified.
 
+## Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+See [test coverage](docs/testing.md). The expanded suite has 21 test methods for configuration,
+A/B metadata, timing boundaries, NaN/masks, serialization, and CLI execution from another
+directory. All 21 passed locally and in the rebuilt ARM64 container, as confirmed by the
+project owner; hosted CI verification of the expanded suite is pending after push.
+Tests use synthetic arrays and temporary files.
+
 ## Run with Docker
 
 The image build, five container unit tests, and a persistent synthetic sample run passed on
@@ -176,7 +188,8 @@ stored in the configured channel order. Grid spacing is not the native sensor re
 
 - Docker and Compose synthetic-contract checks passed locally on ARM64. CI passed Python
   and Docker checks on Linux AMD64. Real-data preprocessing inside Docker, the real-data
-  Compose overlay, and expanded entrypoint tests remain to be verified.
+  Compose overlay remain to be verified. Expanded entrypoint/error tests passed locally
+  and in the ARM64 container; their hosted CI run is pending.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
 - No comprehensive radar quality-control chain, lightning labels, forecast lead time,
