@@ -1,0 +1,18 @@
+{
+  "schema_version": "nhabe-himawari-dataset-audit-2025-08",
+  "status": "PASS",
+  "expected_samples": 8774,
+  "audited_samples": 8774,
+  "failures": [],
+  "unique_sample_ids": 8774,
+  "signature_counts": {
+    "A": 4387,
+    "B": 4387
+  },
+  "unique_himawari_groups": 4387,
+  "groups_with_nonidentical_satellite_arrays": [],
+  "all_shapes_dtypes_masks_nan_semantics_valid": true,
+  "all_time_deltas_within_180_seconds": true,
+  "total_npz_bytes": 9330417836,
+  "raw_data_modified": false
+}

@@ -1,0 +1,6 @@
+arm-pyart==2.2.5
+satpy==0.60.0
+pyresample==1.35.0
+PyYAML==6.0.3
+aiohttp==3.14.3
+numpy==2.5.2

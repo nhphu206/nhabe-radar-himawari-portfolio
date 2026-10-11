@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nhabe-radar-himawari"
+version = "0.1.0"
+description = "Reproducible preprocessing for Nha Be weather radar and Himawari-9"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{name = "Nguyen Hoai Phu"}]
+dependencies = [
+  "arm-pyart==2.2.5",
+  "satpy==0.60.0",
+  "pyresample==1.35.0",
+  "PyYAML==6.0.3",
+  "aiohttp==3.14.3",
+  "numpy==2.5.2",
+]
+
+[project.scripts]
+nhabe-pipeline = "nhabe_preprocessing.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

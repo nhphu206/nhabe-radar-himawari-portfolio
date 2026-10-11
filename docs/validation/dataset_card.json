@@ -1,0 +1,77 @@
+{
+  "schema_version": "nhabe-himawari-dataset-2025-08",
+  "status": "AUDITED_PREPROCESSING_COMPLETE",
+  "scope": "Radar Nhà Bè và Himawari-9 tháng 08/2025",
+  "samples": 8774,
+  "leakage_groups": 4387,
+  "signature_counts": {
+    "A": 4387,
+    "B": 4387
+  },
+  "dates": [
+    "20250801",
+    "20250802",
+    "20250803",
+    "20250804",
+    "20250805",
+    "20250806",
+    "20250807",
+    "20250808",
+    "20250809",
+    "20250810",
+    "20250811",
+    "20250812",
+    "20250813",
+    "20250814",
+    "20250815",
+    "20250816",
+    "20250817",
+    "20250818",
+    "20250819",
+    "20250820",
+    "20250821",
+    "20250822",
+    "20250823",
+    "20250824",
+    "20250825",
+    "20250826",
+    "20250827",
+    "20250828",
+    "20250829",
+    "20250830",
+    "20250831"
+  ],
+  "shape": {
+    "radar_yx": [
+      256,
+      256
+    ],
+    "himawari_band_yx": [
+      5,
+      256,
+      256
+    ]
+  },
+  "band_order": [
+    "B08",
+    "B13",
+    "B14",
+    "B15",
+    "B16"
+  ],
+  "common_grid": "NHB_AEQD_400KM_256",
+  "pipeline_config": "configs/pipeline.yaml",
+  "index": "output/dataset/index.csv",
+  "index_sha256": "2b79f2a7b9897b24cdefdda81eef0481f2831a1b36b606999456d5b8f20948cc",
+  "daily_summary": "output/dataset/daily_summary.csv",
+  "split_policy": {
+    "status": "NOT_ASSIGNED",
+    "required_group_unit": "leakage_group_id",
+    "recommendation": "Chia theo khối thời gian sau khi xác định nhãn dự báo",
+    "forbidden": "independent random sample split"
+  },
+  "normalization": {
+    "status": "NOT_COMPUTED",
+    "rule": "Chỉ tính từ tập huấn luyện sau khi chốt cách chia tập"
+  }
+}

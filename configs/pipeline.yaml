@@ -1,0 +1,123 @@
+schema_version: nhabe-himawari-preprocessing-2025-08
+status: reproducible_preprocessing_configuration
+scope: Radar Nhà Bè và Himawari-9 tháng 08/2025
+
+paths:
+  radar_root: data/raw/radar/2025 Pro-Raw T08
+  himawari_day01_root: data/raw/himawari/20250801
+  himawari_staging_root: data/staging/himawari_month
+  header_cache_root: data/staging/himawari_header_cache
+  inventory_root: output/inventory
+  preprocessed_root: output/preprocessed
+  dataset_root: output/dataset
+  audit_root: output/audit
+
+radar:
+  reader: pyart.io.read_sigmet
+  field: reflectivity
+  units: dBZ
+  read_only: true
+  classifier_tolerances:
+    gate_spacing_absolute_m: 1.0
+    max_range_absolute_m: 1.0
+    fixed_angle_absolute_deg: 0.15
+  signatures:
+    A:
+      scan_type: ppi
+      nsweeps: 4
+      ngates: 500
+      gate_spacing_m: 600.0
+      max_range_m: 299400.0
+      fixed_angles_deg: [0.4998779296875, 1.4996337890625, 2.4993896484375, 3.5980224609375]
+      fields: [reflectivity, spectrum_width, total_power, velocity]
+    B:
+      scan_type: ppi
+      nsweeps: 8
+      ngates: 500
+      gate_spacing_m: 240.0
+      max_range_m: 119760.0
+      fixed_angles_deg: [0.4998779296875, 1.4996337890625, 2.4993896484375, 3.5980224609375,
+                         4.998779296875, 6.70166015625, 8.997802734375, 12.0025634765625]
+      fields: [reflectivity, spectrum_width, total_power, velocity]
+
+grid:
+  grid_id: NHB_AEQD_400KM_256
+  projection:
+    proj: aeqd
+    lat_0: 10.6596
+    lon_0: 106.7283
+    datum: WGS84
+    units: m
+  center:
+    latitude: 10.6596
+    longitude: 106.7283
+  shape_yx: [256, 256]
+  area_extent_m: [-200000.0, -200000.0, 200000.0, 200000.0]
+  pixel_size_m: 1562.5
+  radar_alignment: flip_y_after_pyart_grid_extraction
+
+radar_processing:
+  grid_z_m_above_grid_origin: 1000.0
+  grid_shape: [1, 256, 256]
+  gridding_algo: map_gates_to_grid
+  weighting_function: Barnes2
+  roi_func: dist_beam
+  min_radius_m: 500.0
+  toa_m: 17000.0
+  z_factor: 0.05
+  xy_factor: 0.02
+  h_factor: [1.0, 1.0, 1.0]
+  nb: 1.0
+  bsp: 1.0
+  dist_factor: [1.0, 1.0, 1.0]
+  threshold: null
+  quality_control: null
+
+himawari:
+  platform: Himawari-9
+  bucket: noaa-himawari9
+  product: AHI-L1b-FLDK
+  reader: ahi_hsd
+  bands: [B08, B13, B14, B15, B16]
+  segments: ['04', '05']
+  timing_band: B13
+  timing_segment: '04'
+  nha_be_full_disk_line_one_based: 2185.9018415337077
+  calibration: brightness_temperature
+  units: K
+  resampler: bilinear
+  radius_of_influence_m: 50000.0
+  neighbours: 32
+  epsilon_m: 0.0
+  reduce_data: true
+
+time_alignment:
+  radar_representative_time: midpoint_of_min_max_ray_time_offsets
+  himawari_matching_time: B13_HSD_Block9_local_line_time_at_Nha_Be
+  maximum_absolute_delta_seconds: 180.0
+  tie_breaker: earlier_himawari_nominal_start
+  many_to_one_allowed: true
+  temporal_interpolation: false
+
+sample_contract:
+  schema_version: nhabe-himawari-paired-sample-2025-08
+  arrays:
+    - radar_reflectivity_dbz
+    - radar_data_valid_mask
+    - radar_range_support_mask
+    - himawari_bt
+    - himawari_band_valid_mask
+    - himawari_all_bands_valid_mask
+  band_order: [B08, B13, B14, B15, B16]
+  missing_float: NaN
+  zero_fill: false
+  atomic_write: true
+  validate_after_write: true
+
+expected_results:
+  radar_volumes: 8916
+  matched_samples: 8774
+  signature_A_samples: 4387
+  signature_B_samples: 4387
+  leakage_groups: 4387
+  missing_himawari_cycles: 71
