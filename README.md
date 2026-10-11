@@ -84,6 +84,27 @@ decode SIGMET/HSD observations or test real-data interpolation. To run a wrapper
 another working directory, pass its absolute path. The package and console entry point
 are defined in `pyproject.toml`; editable installation remains to be verified.
 
+## Run with Docker
+
+The image build, five container unit tests, and a persistent synthetic sample run passed on
+Linux ARM64 via Docker Desktop. The sample was also reopened and validated on the host.
+See [the Docker walkthrough](docs/docker.md) for the image layout, output mounts, and limits.
+
+```bash
+docker build --progress=plain -t nhabe-preprocessing:dev .
+docker run --rm nhabe-preprocessing:dev test
+mkdir -p output/docker-sample
+docker run --rm \
+  --mount type=bind,source="$(pwd)/output/docker-sample",target=/app/output \
+  nhabe-preprocessing:dev sample --output /app/output
+```
+
+The multi-stage build compiles dependencies in a builder, then copies the Python environment
+into a runtime image without the compiler toolchain. The image runs a non-root batch CLI and
+includes code, tests, dependencies, and the scientific configuration. Input observations and
+private documents are excluded. The corrected build resolved the first attempt's missing-gcc
+failure. Docker Desktop reported 1.22 GB disk usage and 271 MB content size for the tested image.
+
 ## Real-data processing stages
 
 Prepare your own authorized input files at the locations in `configs/pipeline.yaml`.
@@ -131,7 +152,8 @@ stored in the configured channel order. Grid spacing is not the native sensor re
 
 ## Limitations and next engineering steps
 
-- Docker packaging, container verification, CI, and expanded entrypoint tests are pending.
+- Docker build and synthetic-contract checks passed on ARM64. Compose mounts, real-data
+  preprocessing inside Docker, other architectures, CI, and expanded entrypoint tests are pending.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
 - No comprehensive radar quality-control chain, lightning labels, forecast lead time,
