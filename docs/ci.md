@@ -1,7 +1,9 @@
 # Continuous integration
 
 The workflow in `.github/workflows/ci.yml` runs on pushes, pull requests, and manual dispatch.
-Its first hosted run is pending; local ARM64 Docker verification is documented separately.
+The first hosted run passed both jobs, as confirmed by the provided logs and screenshot:
+[run #1](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38146073831).
+Python took 1 minute 2 seconds; Docker checks took 1 minute 28 seconds.
 
 1. **Python tests and synthetic sample:** install Python 3.12 and the declared dependencies,
    install the project package, check dependency consistency and syntax, run `doctor`, run
@@ -10,7 +12,7 @@ Its first hosted run is pending; local ARM64 Docker verification is documented s
    run container tests, persist a mock sample through a writable output mount, reopen it
    through a read-only mount, and report the image size in bytes.
 
-The runner is `ubuntu-24.04` (standard x64 GitHub-hosted runner). The first CI run will check
+The runner is `ubuntu-24.04` (standard x64 GitHub-hosted runner). The first CI run checked
 Linux AMD64 in addition to the Linux ARM64 environment already tested locally. Each job has
 a 30-minute timeout; new commits cancel obsolete runs for the same ref.
 

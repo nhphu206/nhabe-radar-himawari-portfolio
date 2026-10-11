@@ -1,0 +1,15 @@
+# Optional overlay. Never mount inputs from a path guessed by the application.
+services:
+  pipeline:
+    volumes:
+      - type: bind
+        source: ${RAW_INPUT_DIR:?Set RAW_INPUT_DIR to an existing raw-data directory}
+        target: /app/data/raw
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${STAGING_DIR:?Set STAGING_DIR to an existing writable staging directory}
+        target: /app/data/staging
+        bind:
+          create_host_path: false

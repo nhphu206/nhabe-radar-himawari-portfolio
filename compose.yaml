@@ -1,0 +1,25 @@
+name: nhabe-preprocessing
+
+services:
+  pipeline:
+    image: nhabe-preprocessing:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: "${PIPELINE_UID:-10001}:${PIPELINE_GID:-10001}"
+    command: ["--help"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - type: bind
+        source: ./configs
+        target: /app/configs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PIPELINE_OUTPUT_DIR:-./output/compose-sample}
+        target: /app/output
+        bind:
+          create_host_path: false

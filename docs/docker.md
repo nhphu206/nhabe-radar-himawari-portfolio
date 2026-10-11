@@ -59,7 +59,8 @@ reported **1.22 GB DISK USAGE** and **271 MB CONTENT SIZE**. These are the two d
 reported by that Docker installation, not the RAM requirement or dataset size. Image sizes
 can change across architectures, base-image updates, and dependency resolution.
 
-Compose and real-input mounts remain to be verified.
+Compose mock execution and read-only output revalidation passed on Docker Desktop; see
+[the walkthrough](compose.md). Real-input processing remains to be verified.
 Bind-mounted output directories must allow writes by the container user. Real-data workflows
 also need read-only configuration/raw-input mounts, writable staging and output locations,
 and previously prepared timing inputs. No real-data month run is triggered by these commands.

@@ -109,8 +109,23 @@ failure. Docker Desktop reported 1.22 GB disk usage and 271 MB content size for 
 
 The [GitHub Actions workflow](.github/workflows/ci.yml) checks Python tests, a synthetic sample,
 Docker build, container tests, and persisted output validation on pushes and pull requests.
-No user-supplied secrets are required. The first hosted run is pending verification.
+No user-supplied secrets are required. The first hosted run passed both jobs on Linux AMD64.
 See [CI details](docs/ci.md) for job order, runner architecture, and scope.
+
+## Compose sample workflow
+
+Compose keeps mount settings in versioned YAML. The configuration is read-only and synthetic
+output is writable and persistent. The synthetic run and read-only output revalidation passed
+on macOS ARM64 with Docker Desktop:
+
+```bash
+mkdir -p output/compose-sample
+docker compose config --quiet
+docker compose run --rm pipeline sample --output /app/output
+```
+
+See [the Compose walkthrough](docs/compose.md). Real inputs are configured separately using
+`compose.real-data.yaml`; no observations are mounted for the mock command above.
 
 ## Real-data processing stages
 
@@ -159,9 +174,9 @@ stored in the configured channel order. Grid spacing is not the native sensor re
 
 ## Limitations and next engineering steps
 
-- Docker build and synthetic-contract checks passed on ARM64. Compose mounts, real-data
-  preprocessing inside Docker, other architectures, and expanded entrypoint tests are pending.
-  CI is configured; its first hosted run is pending verification.
+- Docker and Compose synthetic-contract checks passed locally on ARM64. CI passed Python
+  and Docker checks on Linux AMD64. Real-data preprocessing inside Docker, the real-data
+  Compose overlay, and expanded entrypoint tests remain to be verified.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
 - No comprehensive radar quality-control chain, lightning labels, forecast lead time,
