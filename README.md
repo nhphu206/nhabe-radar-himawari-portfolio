@@ -198,7 +198,16 @@ stored in the configured channel order. Grid spacing is not the native sensor re
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
 - No comprehensive radar quality-control chain, lightning labels, forecast lead time,
   train/test split, training-only normalization, or AI model evaluation has been completed.
-- Raw-data redistribution is not included. A source-code license has not yet been selected.
+- Raw-data redistribution is not included. A complete bundled-component license and
+  corresponding-source review is required before distributing built container images.
 
 Future model work requires agreed labels and lead times, temporal/group-aware splits, and
 normalization calculated only from training data.
+
+## License
+
+Project-authored code and accompanying documentation are licensed under
+**GPL-3.0-or-later**; see [LICENSE](LICENSE) and [third-party notices](NOTICE.md).
+Dependencies retain their own licenses. This grant does not cover observation data,
+generated research datasets, or personal reports. Docker images are built for local/CI
+checks; no image has been published to a registry.

@@ -29,7 +29,7 @@ COPY requirements.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --prefer-binary -r requirements.txt
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md LICENSE NOTICE.md ./
 COPY src/ ./src/
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m pip install --no-deps .
@@ -40,7 +40,7 @@ FROM base AS runtime
 COPY --from=builder /opt/venv /opt/venv
 
 # Explicit copies prevent observations and private files entering the image.
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md LICENSE NOTICE.md ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY tests/ ./tests/

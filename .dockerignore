@@ -5,6 +5,8 @@
 !requirements.txt
 !pyproject.toml
 !README.md
+!LICENSE
+!NOTICE.md
 !src/
 !src/**
 !scripts/

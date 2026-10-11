@@ -9,6 +9,10 @@ description = "Reproducible preprocessing for Nha Be weather radar and Himawari-
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "Nguyen Hoai Phu"}]
+license = {file = "LICENSE"}
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+]
 dependencies = [
   "arm-pyart==2.2.5",
   "satpy==0.60.0",
