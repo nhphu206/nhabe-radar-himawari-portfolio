@@ -1,0 +1,116 @@
+name: Preprocessing CI
+
+"on":
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-tests:
+    name: Python tests and synthetic sample
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NHABE_PROJECT_ROOT: ${{ github.workspace }}
+      PYTHONDONTWRITEBYTECODE: "1"
+      MPLCONFIGDIR: /tmp/nhabe-matplotlib
+      XDG_CACHE_HOME: /tmp/nhabe-cache
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
+
+      - name: Prepare source-build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential
+
+      - name: Install dependencies and package
+        run: |
+          python -m pip install --prefer-binary -r requirements.txt
+          python -m pip install --no-deps .
+          python -m pip check
+
+      - name: Check Python syntax and environment
+        run: |
+          python -m compileall -q src scripts tests
+          nhabe-pipeline doctor
+
+      - name: Run tests
+        run: nhabe-pipeline test
+
+      - name: Generate and reopen synthetic sample
+        run: |
+          nhabe-pipeline sample --output output/ci-sample
+          python - <<'PY'
+          from pathlib import Path
+          from nhabe_preprocessing.validation import validate_sample_files
+
+          root = Path("output/ci-sample")
+          stem = "MOCK_NHB_20250801T000000Z_A"
+          metadata = validate_sample_files(
+              root / f"{stem}.npz", root / f"{stem}.json", "MOCK_NOT_RAW_DATA"
+          )
+          assert metadata["sample_kind"] == "SYNTHETIC_CONTRACT_SMOKE_TEST"
+          print("Reopened synthetic output: PASS")
+          PY
+
+  docker-check:
+    name: Docker build and container checks
+    needs: python-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        run: docker build --progress=plain -t nhabe-preprocessing:ci .
+
+      - name: Check container environment and tests
+        run: |
+          docker run --rm nhabe-preprocessing:ci doctor
+          docker run --rm nhabe-preprocessing:ci test
+
+      - name: Generate persistent synthetic output
+        run: |
+          mkdir -p output/ci-docker-sample
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --mount type=bind,source="$PWD/output/ci-docker-sample",target=/app/output \
+            nhabe-preprocessing:ci sample --output /app/output
+
+      - name: Reopen output with a read-only mount
+        run: |
+          docker run --rm --entrypoint python \
+            --mount type=bind,source="$PWD/output/ci-docker-sample",target=/sample,readonly \
+            nhabe-preprocessing:ci -c '
+          from pathlib import Path
+          from nhabe_preprocessing.validation import validate_sample_files
+          root = Path("/sample")
+          stem = "MOCK_NHB_20250801T000000Z_A"
+          validate_sample_files(root / f"{stem}.npz", root / f"{stem}.json", "MOCK_NOT_RAW_DATA")
+          print("Reopened Docker output: PASS")
+          '
+
+      - name: Record image size
+        run: docker image inspect nhabe-preprocessing:ci --format '{{.Size}}'

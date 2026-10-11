@@ -105,6 +105,13 @@ includes code, tests, dependencies, and the scientific configuration. Input obse
 private documents are excluded. The corrected build resolved the first attempt's missing-gcc
 failure. Docker Desktop reported 1.22 GB disk usage and 271 MB content size for the tested image.
 
+## Continuous integration
+
+The [GitHub Actions workflow](.github/workflows/ci.yml) checks Python tests, a synthetic sample,
+Docker build, container tests, and persisted output validation on pushes and pull requests.
+No user-supplied secrets are required. The first hosted run is pending verification.
+See [CI details](docs/ci.md) for job order, runner architecture, and scope.
+
 ## Real-data processing stages
 
 Prepare your own authorized input files at the locations in `configs/pipeline.yaml`.
@@ -153,7 +160,8 @@ stored in the configured channel order. Grid spacing is not the native sensor re
 ## Limitations and next engineering steps
 
 - Docker build and synthetic-contract checks passed on ARM64. Compose mounts, real-data
-  preprocessing inside Docker, other architectures, CI, and expanded entrypoint tests are pending.
+  preprocessing inside Docker, other architectures, and expanded entrypoint tests are pending.
+  CI is configured; its first hosted run is pending verification.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
 - No comprehensive radar quality-control chain, lightning labels, forecast lead time,
