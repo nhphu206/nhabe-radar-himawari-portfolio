@@ -93,7 +93,9 @@ python -m unittest discover -s tests -v
 See [test coverage](docs/testing.md). The expanded suite has 21 test methods for configuration,
 A/B metadata, timing boundaries, NaN/masks, serialization, and CLI execution from another
 directory. All 21 passed locally and in the rebuilt ARM64 container, as confirmed by the
-project owner; hosted CI verification of the expanded suite is pending after push.
+project owner. The expanded suite's hosted CI also passed both Python and Docker jobs
+in [run #3](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38147133453),
+as confirmed by the project owner's screenshot.
 Tests use synthetic arrays and temporary files.
 
 ## Run with Docker
@@ -166,6 +168,8 @@ the complete August dataset and its configured expected counts.
 
 Each real sample has an NPZ containing six arrays and a JSON containing source, grid,
 band order, observation times, matching result, and descriptive quality statistics.
+See the [data dictionary](docs/data-dictionary.md) for field meanings, axis order,
+mask semantics, metadata, CSV statuses, and leakage groups.
 
 | NPZ key | Shape | Type/unit |
 | --- | --- | --- |
@@ -189,7 +193,7 @@ stored in the configured channel order. Grid spacing is not the native sensor re
 - Docker and Compose synthetic-contract checks passed locally on ARM64. CI passed Python
   and Docker checks on Linux AMD64. Real-data preprocessing inside Docker, the real-data
   Compose overlay remain to be verified. Expanded entrypoint/error tests passed locally
-  and in the ARM64 container; their hosted CI run is pending.
+  and in the ARM64 container; the expanded suite's hosted CI also passed both jobs.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
 - No comprehensive radar quality-control chain, lightning labels, forecast lead time,

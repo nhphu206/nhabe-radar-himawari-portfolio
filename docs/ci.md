@@ -4,6 +4,9 @@ The workflow in `.github/workflows/ci.yml` runs on pushes, pull requests, and ma
 The first hosted run passed both jobs, as confirmed by the provided logs and screenshot:
 [run #1](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38146073831).
 Python took 1 minute 2 seconds; Docker checks took 1 minute 28 seconds.
+The expanded test suite subsequently passed both jobs in
+[run #3](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38147133453),
+confirmed by the project owner's screenshot; Docker checks took 1 minute 40 seconds.
 
 1. **Python tests and synthetic sample:** install Python 3.12 and the declared dependencies,
    install the project package, check dependency consistency and syntax, run `doctor`, run

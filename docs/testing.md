@@ -3,7 +3,9 @@
 The suite contains 21 test methods: five original contract checks, twelve boundary/error
 checks, and four CLI subprocess checks. The project owner confirmed all 21 pass with the
 local research interpreter and again inside the rebuilt ARM64 Docker image. The expanded
-suite's hosted CI run remains to be verified after commit/push.
+suite also passed both hosted CI jobs in
+[run #3](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38147133453),
+as confirmed by the project owner's screenshot. Docker checks took 1 minute 40 seconds.
 
 ```bash
 python -m unittest discover -s tests -v
