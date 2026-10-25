@@ -125,7 +125,8 @@ reported 278,803,895 bytes (approximately 266 MiB), and `pip check` reported no 
 requirements. Compose reached `healthy`; a real mounted-data prediction was reopened on the
 host with shape 256 × 256, float32 values, 7,452 valid pixels and matching NPZ hash. A static
 image scan found no `.pt`, `.pth`, `.npz` or raw-radar file under `/app`. The test container and
-network were removed afterward. GitHub Actions also exercises the synthetic dashboard/API
-contract on Linux AMD64: 31 AI/API tests, image build, dashboard shell, pair listing,
-current/prediction PNG dimensions, target-free inference, prediction reopen, image-content scan
-and cleanup.
+network were removed afterward. GitHub Actions run
+[40172733715](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/40172733715)
+exercised the complete synthetic dashboard/API contract on Linux AMD64: 31 AI/API tests, image
+build, dashboard shell, pair listing, current/prediction PNG dimensions, target-free inference,
+one-command interactive demo, prediction reopen, image-content scan and cleanup.

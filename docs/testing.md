@@ -20,6 +20,8 @@ acquire the much larger PyTorch dependency.
 The three Linux AMD64 jobs cover the 67-test Python workflow, preprocessing image checks, and
 the 31-test AI/API workflow with target-free and interactive synthetic fixtures, HTTP prediction
 roundtrip, dashboard/PNG checks and image-content scan.
+The complete current suite and one-command Compose demo passed on Linux AMD64 in
+[run 40172733715](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/40172733715).
 
 ```bash
 python -m unittest discover -s tests -v

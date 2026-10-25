@@ -53,6 +53,8 @@ References: [GitHub Actions quickstart](https://docs.github.com/en/actions/get-s
 The extended workflow and synthetic AI fixture were parsed and simulated locally on ARM64:
 fixture generation, healthy API container, dashboard/API endpoints, prediction reopen and static
 image scan passed. The forecasting extension currently has 67 preprocessing/timing tests and
-31 dedicated AI/API tests passing locally. The same contract is checked on GitHub's Linux AMD64
-runner in run 40157818399. This verifies portability of the synthetic workflow, not model
-skill on unseen meteorological observations or real-time production readiness.
+31 dedicated AI/API tests passing locally. The complete current contract passed on GitHub's
+Linux AMD64 runner in
+[run 40172733715](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/40172733715),
+including the one-command interactive demo. This verifies portability of the synthetic workflow,
+not model skill on unseen meteorological observations or real-time production readiness.
