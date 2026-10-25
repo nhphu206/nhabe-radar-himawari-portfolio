@@ -171,6 +171,7 @@ class InferenceTests(unittest.TestCase):
             root = client.get("/")
             self.assertEqual(root.status_code, 200)
             self.assertIn("Run forecast", root.text)
+            self.assertEqual(client.get("/openapi.json").json()["info"]["version"], "1.1.0")
 
             health = client.get("/health")
             self.assertEqual(health.status_code, 200)

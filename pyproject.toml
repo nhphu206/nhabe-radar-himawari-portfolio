@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nhabe-radar-himawari"
-version = "1.0.0"
+version = "1.1.0"
 description = "Reproducible radar-Himawari preprocessing and ten-minute reflectivity forecasting"
 readme = "README.md"
 requires-python = ">=3.11"

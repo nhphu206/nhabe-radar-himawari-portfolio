@@ -1,7 +1,7 @@
 # Nha Be Radar–Himawari Forecasting Pipeline
 
 [![Radar–Himawari CI](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/nhphu206/nhabe-radar-himawari-portfolio?label=release)](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/releases/tag/v1.0.0)
+[![Release](https://img.shields.io/github/v/release/nhphu206/nhabe-radar-himawari-portfolio?label=release)](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/releases/latest)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 

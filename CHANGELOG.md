@@ -2,7 +2,7 @@
 
 This project records research milestones rather than claiming production readiness.
 
-## Unreleased
+## v1.1.0 — Interactive forecast demo
 
 - Added a dependency-free interactive FastAPI dashboard for audited validation pairs.
 - Kept target-free inference separate from the optional historical observation/error view.
