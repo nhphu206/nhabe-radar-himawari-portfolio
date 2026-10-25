@@ -100,5 +100,7 @@ decoding, satellite downloads, preprocessing rerun, or model training is require
 15 normalization tests cover streaming moments, pixel weighting, negative/zero/NaN values,
 per-band masking, deduplication, invalid inputs, zero std, metadata mutation, leakage,
 absence of validation/test/target-only reads, CLI roundtrip and overwrite protection.
-The full local suite has 67 passing tests. Docker and hosted CI for these changes are
-not yet verified. Dataset tensor transformation, model training and evaluation are future stages.
+The full local suite has 67 passing tests, and the hosted Python CI job verifies the same
+preprocessing/timing suite. Dataset transformation, controlled training and locked-test
+evaluation were subsequently implemented; see `forecasting_dataset.md`, `training_results.md`
+and `final_evaluation.md`. Their completion does not change these train-only fitting rules.

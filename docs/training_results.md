@@ -39,7 +39,8 @@ Both learned models outperform persistence on the same validation domain. In thi
 controlled run, adding the five Himawari bands produces a small additional validation gain.
 The gain is evidence that the multimodal candidate is worth carrying forward; it is not yet
 evidence of statistically reliable superiority. Only one seed, one month and one site are
-available, and the locked test set has not been opened.
+available. At this model-selection stage the locked test set had not been opened; it was
+subsequently evaluated once from frozen commit `b5b8399`, as documented in `final_evaluation.md`.
 
 The common-valid domain makes comparison with persistence fair, because persistence is only
 defined where the current radar observation exists. Training loss uses all target-valid

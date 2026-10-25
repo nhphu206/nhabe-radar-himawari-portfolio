@@ -9,9 +9,10 @@ Chỉ dùng signature A. Preprocessing và 8.774 cặp NPZ/JSON gốc giữ nguy
 Đã triển khai: tạo forecast pairs đúng timestamp, chia tập theo ngày UTC, kiểm tra
 đường dẫn và chống dùng chung sample/time/leakage group giữa các split. Day 11 bổ sung
 nguồn vệ tinh chu kỳ trước và audit đủ 10 header/cặp; xem mục 8 cho trạng thái mới nhất.
-Day 12 đã tính train-only normalization statistics (mục 9), chưa tạo tensor chuẩn hóa.
-Chưa triển khai: Dataset/DataLoader, baseline, U-Net, training, inference/API.
-Không cần cài PyTorch cho bước tạo pair.
+Day 12 tính train-only normalization statistics; các Day 14--25 sau đó hoàn thành
+Dataset/DataLoader, persistence baseline, controlled Small U-Net training, one-time locked-test
+evaluation, target-free inference, FastAPI/Docker và hosted AI CI. Các mục bên dưới giữ nguyên
+trạng thái theo từng ngày để thể hiện quá trình học và các gate đã vượt qua.
 
 ## 2. Tôi cần hiểu — forecast pairs
 
@@ -502,7 +503,8 @@ không bị hiểu nhầm là kết quả nghiên cứu.
 Job cài Torch CPU-only, chạy 30 tests, build Docker AI, khởi động API, gọi health/model/predict,
 mở lại NPZ/JSON, kiểm tra image không có data/checkpoint và luôn dọn container. Mô phỏng local
 ARM64 PASS với 34.621 valid pixels; future target không được đọc. Workflow YAML/structure PASS.
-Chưa push nên chưa được gọi là GitHub AMD64 CI PASS.
+Day 24 chỉ có bằng chứng local ARM64; Day 25 ngay sau đó ghi nhận hosted Linux AMD64 run
+đã hoàn tất.
 
 ## 21. Day 25 — xác nhận CI AI trên Linux AMD64 (25/10/2026)
 

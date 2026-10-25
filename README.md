@@ -120,7 +120,8 @@ python scripts/nhabe_pipeline.py sample --output output/sample
 The mock command writes, reopens, and validates synthetic NPZ/JSON arrays. It does not
 decode SIGMET/HSD observations or test real-data interpolation. To run a wrapper from
 another working directory, pass its absolute path. The package and console entry point
-are defined in `pyproject.toml`; editable installation remains to be verified.
+are defined in `pyproject.toml`; the standard package install and `nhabe-pipeline` entry point
+are verified during both Docker builds and the hosted Python CI job.
 
 ## Tests
 
