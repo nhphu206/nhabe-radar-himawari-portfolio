@@ -1,0 +1,53 @@
+{
+  "schema_version": "nhabe-portfolio-assets-v1",
+  "status": "PASS",
+  "purpose": "Recruiter-facing visualizations derived from verified local artifacts",
+  "raw_observations_distributed": false,
+  "model_or_scientific_configuration_changed": false,
+  "assets": [
+    {
+      "asset": "forecast_example.png",
+      "source": "audited middle validation pair (index 70 of 141)",
+      "input_time_utc": "2025-08-24T12:11:23Z",
+      "target_time_utc": "2025-08-24T12:21:23Z",
+      "common_valid_pixels": 13024,
+      "mae_dbz": 3.949739888372421,
+      "rmse_dbz": 5.094521569323557,
+      "prediction_npz_sha256": "e0cf604b0c086d874dc2ddca00c2473918f875f1f201f702a6b7db060f7adfc8",
+      "display_ranges_are_processing_thresholds": false,
+      "sha256": "e7a8066d86f713457f7a0b969c48fc0ce38318040f40ce8bd924f71745c9c23c"
+    },
+    {
+      "asset": "locked_test_comparison.png",
+      "source_sha256": "dc73951905da218e70534814f283581f7460d8d1a87fa86d4e780793c03956a9",
+      "pairs": 173,
+      "metrics": {
+        "persistence": {
+          "mae_dbz": 5.011121175590294,
+          "rmse_dbz": 7.407762803234289
+        },
+        "radar_unet": {
+          "mae_dbz": 4.234776319745315,
+          "rmse_dbz": 5.956062793794632
+        },
+        "multimodal_unet": {
+          "mae_dbz": 4.215341494438919,
+          "rmse_dbz": 5.903870600734373
+        }
+      },
+      "sha256": "6a4bd04f6679d62b1b551affcc458250c6f1020bdb821f59ee26f020f8349aff"
+    },
+    {
+      "asset": "training_curve.png",
+      "radar_history_sha256": "aec1433a4e9a62a33bfc9cc9197bfba06d444245d78036fe0ce6585b8eebba71",
+      "multimodal_history_sha256": "ab61a6f1ffe0e27953c6e96c8235bc403760d5e9577c31d505f2a1a755b36b5a",
+      "persistence_summary_sha256": "e457dedc6225ee4f4002660612aef423f0a61a1dac77ac96216a55b3c3315504",
+      "epochs_displayed": [
+        1,
+        30
+      ],
+      "persistence_validation_rmse_dbz": 8.036565503352428,
+      "sha256": "2880f6a9a73d355c95fc1e75a50abdf7cddf64381ae94a890074e91ed309cefe"
+    }
+  ]
+}

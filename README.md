@@ -1,145 +1,162 @@
 # Nha Be Radar–Himawari Forecasting Pipeline
 
-[![Radar-Himawari CI](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml)
+[![Radar–Himawari CI](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/nhphu206/nhabe-radar-himawari-portfolio?label=release)](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/releases/tag/v1.0.0)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSE)
 
-A research project that turns Nha Be weather radar and Himawari-9 observations into spatially
-aligned arrays and evaluates a controlled ten-minute reflectivity forecasting experiment.
-The research scope is August 2025; this is an offline portfolio study, not a production service.
+An end-to-end research portfolio that transforms Nha Be weather-radar and Himawari-9
+observations into spatially aligned arrays, then evaluates controlled deep-learning models
+for next-volume radar-reflectivity forecasting.
 
-## Pipeline
+**Scope:** one station, August 2025, offline research. This is not a production weather service
+and does not claim operational forecast skill.
+
+![Current radar, ten-minute prediction, observation and absolute error](assets/portfolio/forecast_example.png)
+
+The image is one deterministic validation example. Display ranges are not processing
+thresholds. Its source products and the published figures are hash-recorded in
+[asset provenance](assets/portfolio/provenance.json).
+
+## At a glance
+
+| Verified outcome | Result |
+| --- | ---: |
+| Radar volumes inventoried | **8,916** |
+| Available Himawari cycles | **4,393** |
+| Spatially and temporally aligned samples | **8,774** |
+| Leakage groups | **4,387** |
+| Causally screened forecast pairs | **822** |
+| Locked-test pairs | **173** |
+| Multimodal locked-test MAE / RMSE | **4.215 / 5.904 dBZ** |
+| RMSE reduction relative to persistence | **20.30%** |
+| Independent full-dataset audit | **PASS** |
+
+## Why this project
+
+Radar and satellite observations differ in geometry, sampling, missing-data patterns and
+observation time. A forecasting model is only credible if those differences are handled
+before training. This project therefore treats data engineering, scientific configuration,
+temporal causality and auditability as first-class parts of the ML system.
+
+Key engineering decisions include:
+
+- identifying radar scan strategies from decoded metadata rather than filenames;
+- mapping radar CAPPI and five Himawari bands to one versioned 256 × 256 grid;
+- preserving missing values as float32 NaN with explicit boolean masks;
+- matching local observation times with a 180-second tolerance;
+- grouping dependent A/B samples before partitioning;
+- fitting normalization from training inputs only;
+- keeping the test split locked until model development was complete;
+- writing, reopening and validating NPZ/JSON products with provenance hashes.
+
+## Pipeline architecture
 
 ```mermaid
 flowchart LR
-    R[Local SIGMET radar] --> I[Metadata inventory and A/B classification]
-    I --> T[UTC time matching]
-    H[Himawari HSD observations] --> T
-    R --> C[Py-ART CAPPI]
+    R[SIGMET radar] --> I[Inventory and A/B metadata classification]
+    H[Himawari HSD] --> T[Observation-time matching]
+    I --> T
+    R --> C[Py-ART 1 km CAPPI]
     H --> S[SatPy calibration and resampling]
     C --> P[Aligned NPZ and JSON samples]
     S --> P
     T --> P
-    P --> D[Dataset index and independent audit]
-    D --> F[Leakage-safe forecast pairs]
+    P --> A[Schema and full-dataset audit]
+    A --> F[Leakage-safe forecast pairs]
     F --> N[Train-only normalization]
     N --> M[Controlled Small U-Net experiments]
-    M --> E[Locked-test evaluation]
-    M --> O[Audited NPZ and JSON prediction]
+    M --> E[One-time locked-test evaluation]
+    M --> API[Audited CLI and FastAPI inference]
 ```
 
-Radar volumes and satellite images have different geometry, sampling, missing values,
-and observation times. The pipeline preserves those differences in metadata while aligning
-their arrays on one Cartesian grid. Radar classification uses scan metadata rather than
-filename suffixes or file sizes.
+## Controlled forecasting experiment
 
-## Engineering highlights
+The target is radar reflectivity from the next Signature-A volume, with an exact 600-second
+radar-midpoint separation. Satellite input comes from the previous nominal Himawari cycle and
+must pass observation-end and file-creation checks against the radar observation-end cutoff.
+The audit checked **8,220 HSD headers** and retained **822 pairs**:
 
-- **Metadata-driven ingestion:** distinguishes two radar scan geometries from decoded fields,
-  not filenames or file sizes, and records representative observation times explicitly.
-- **Reproducible geospatial contract:** aligns radar CAPPI and five satellite bands on one
-  versioned 256 × 256 grid while preserving NaN values and boolean validity masks.
-- **Leakage and causality controls:** groups dependent samples, splits by time, audits HSD
-  observation/creation headers and computes normalization from training inputs only.
-- **Controlled modeling:** compares persistence, radar-only and multimodal Small U-Net models
-  with the same split, architecture family, loss, training policy and evaluation mask.
-- **Audited delivery:** validates NPZ/JSON artifacts after writing, fingerprints configs and
-  checkpoints, exposes target-free inference, and runs preprocessing plus AI/API checks in CI.
-- **Portable execution:** separates preprocessing and CPU-only forecast images, uses non-root
-  containers and keeps observations, trained weights and generated arrays outside images/Git.
+| Temporal split | Dates in August 2025 | Pairs |
+| --- | --- | ---: |
+| Train | 1–21 | 508 |
+| Validation | 22–26 | 141 |
+| Locked test | 27–31 | 173 |
 
-## Verified research results
+All methods use the same temporal split, validity-mask evaluation and model family where
+applicable. The locked test was opened once after model selection.
 
-| Measure | August 2025 result |
-| --- | ---: |
-| Input radar volumes | 8,916 |
-| Available Himawari cycles | 4,393 |
-| Aligned radar–satellite samples | 8,774 |
-| Leakage groups | 4,387 |
-| Independent full-dataset audit | PASS |
-
-Small historical evidence snapshots are in [docs/validation](docs/validation/README.md).
-These results describe the local research dataset, not a production deployment.
-Observation files and generated arrays are not distributed in this repository.
-
-The frozen forecasting experiment uses 822 causally screened pairs split by time into
-508 training, 141 validation and 173 locked-test pairs. On the locked test set:
-
-| Method | MAE (dBZ) | RMSE (dBZ) |
+| Method | MAE (dBZ) ↓ | RMSE (dBZ) ↓ |
 | --- | ---: | ---: |
 | Persistence | 5.011 | 7.408 |
 | Radar-only Small U-Net | 4.235 | 5.956 |
 | Radar + Himawari Small U-Net | **4.215** | **5.904** |
 
-The multimodal model reduced RMSE by 20.30% relative to persistence and 0.88% relative to
-the controlled radar-only model. These are one-seed, one-station, one-month results; they do
-not establish general superiority or operational forecast skill.
+![Locked-test MAE and RMSE](assets/portfolio/locked_test_comparison.png)
+
+The multimodal model reduces RMSE by **20.30%** relative to persistence and **0.88%**
+relative to the controlled radar-only model. The small multimodal gain is reported as observed,
+not generalized beyond this one-seed, one-station and one-month experiment.
+
+<details>
+<summary><strong>Training curve</strong></summary>
+
+![Validation RMSE across controlled training](assets/portfolio/training_curve.png)
+
+Both Small U-Net variants use the same split, optimization policy and 30-epoch budget.
+Checkpoint selection uses validation RMSE only; the dashed line is the persistence-validation
+baseline. See [training results](docs/training_results.md) and the
+[run journal](docs/training_journal.md).
+
+</details>
 
 ## Scientific configuration
 
-The unchanged research configuration is [configs/pipeline.yaml](configs/pipeline.yaml).
+The research configuration is versioned in [configs/pipeline.yaml](configs/pipeline.yaml).
 
-- Grid center: 10.6596 N, 106.7283 E; AEQD/WGS84 projection.
-- Domain: 400 × 400 km; 256 × 256 pixel centers; 1,562.5 m pixel spacing.
-- CAPPI: 1,000 m above the grid origin; `map_gates_to_grid`, `Barnes2`,
-  `dist_beam`, minimum radius 500 m.
-- Satellite: brightness temperature in K, B08/B13/B14/B15/B16, segments S04/S05,
-  bilinear resampling.
-- Time matching: radar volume midpoint and local Himawari HSD Block 9 line time;
-  nearest available cycle within 180 seconds.
-- Missing values: float32 NaN and boolean masks; no zero filling or normalization.
+| Component | Frozen configuration |
+| --- | --- |
+| Common grid | 10.6596° N, 106.7283° E; AEQD/WGS84; 400 × 400 km; 256 × 256 |
+| Radar | 1,000 m CAPPI; `map_gates_to_grid`; Barnes2; `dist_beam`; 500 m minimum radius |
+| Himawari | B08, B13, B14, B15, B16; segments S04/S05; brightness temperature; bilinear resampling |
+| Time match | Radar-volume midpoint to local HSD Block-9 observation time; nearest within 180 s |
+| Missing data | float32 NaN plus boolean masks; never replaced by physical zero |
 
-## Repository structure
+## Data contract
 
-```text
-configs/                  Scientific configuration
-src/nhabe_preprocessing/  Reusable processing code
-src/nhabe_forecasting/    Dataset, model, evaluation and inference code
-scripts/                  Ordered processing stages and CLI wrapper
-tests/                    Data-contract unit tests
-tests_ai/                 Dedicated PyTorch contract tests
-examples/                 Synthetic sample instructions
-docs/validation/          Small research evidence snapshots
-```
+Each aligned sample consists of one NPZ and one JSON metadata record. Observation arrays and
+generated research datasets are intentionally excluded from Git.
 
-The stack includes Python, NumPy, Py-ART, SatPy, Pyresample, PyTorch, FastAPI, Docker,
-Docker Compose and GitHub Actions.
-This repository starts with a fresh Git history containing only the selected project files.
+| NPZ key | Shape | Type / meaning |
+| --- | --- | --- |
+| `radar_reflectivity_dbz` | 256 × 256 | float32 dBZ |
+| `radar_data_valid_mask` | 256 × 256 | bool, finite radar values |
+| `radar_range_support_mask` | 256 × 256 | bool, geometric support |
+| `himawari_bt` | 5 × 256 × 256 | float32 brightness temperature, K |
+| `himawari_band_valid_mask` | 5 × 256 × 256 | bool, per-band validity |
+| `himawari_all_bands_valid_mask` | 256 × 256 | bool, intersection of all five bands |
 
-## Run locally
+`leakage_group_id` keeps radar A/B samples that share one Himawari cycle in the same data
+partition. See the complete [data dictionary](docs/data-dictionary.md).
 
-Use a Python environment with the versions in `requirements.txt` installed. From the
-repository root:
+## Quick start with synthetic data
+
+The runnable demonstration uses synthetic arrays and does not redistribute meteorological
+observations.
 
 ```bash
+git clone https://github.com/nhphu206/nhabe-radar-himawari-portfolio.git
+cd nhabe-radar-himawari-portfolio
 python -m pip install -r requirements.txt
-python scripts/nhabe_pipeline.py --help
 python scripts/nhabe_pipeline.py doctor
 python scripts/nhabe_pipeline.py test
 python scripts/nhabe_pipeline.py sample --output output/sample
 ```
 
-The mock command writes, reopens, and validates synthetic NPZ/JSON arrays. It does not
-decode SIGMET/HSD observations or test real-data interpolation. To run a wrapper from
-another working directory, pass its absolute path. The package and console entry point
-are defined in `pyproject.toml`; the standard package install and `nhabe-pipeline` entry point
-are verified during both Docker builds and the hosted Python CI job.
+The sample command writes an NPZ/JSON pair, reopens it and validates shape, dtype, schema and
+NaN-mask consistency. The package also exposes the `nhabe-pipeline` console entry point.
 
-## Tests
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-See [test coverage](docs/testing.md). The current suite contains 67 preprocessing/timing tests
-and 30 dedicated AI/API tests. Both suites pass locally; the synthetic preprocessing and
-forecast API workflows also pass on GitHub-hosted Linux AMD64 in
-[run 40158067267](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/40158067267).
-Tests use synthetic arrays and temporary files rather than distributed observations.
-
-## Run with Docker
-
-The image build, five container unit tests, and a persistent synthetic sample run passed on
-Linux ARM64 via Docker Desktop. The sample was also reopened and validated on the host.
-See [the Docker walkthrough](docs/docker.md) for the image layout, output mounts, and limits.
+### Docker
 
 ```bash
 docker build --progress=plain -t nhabe-preprocessing:dev .
@@ -150,206 +167,88 @@ docker run --rm \
   nhabe-preprocessing:dev sample --output /app/output
 ```
 
-The multi-stage build compiles dependencies in a builder, then copies the Python environment
-into a runtime image without the compiler toolchain. The image runs a non-root batch CLI and
-includes code, tests, dependencies, and the scientific configuration. Input observations and
-private documents are excluded. The corrected build resolved the first attempt's missing-gcc
-failure. Docker Desktop reported 1.22 GB disk usage and 271 MB content size for the tested image.
+Docker uses a non-root runtime user and keeps observations, outputs and checkpoints outside the
+image. See [Docker](docs/docker.md) and [Compose](docs/compose.md) for verified workflows.
 
-## Continuous integration
+## Real-data stages
 
-The [GitHub Actions workflow](.github/workflows/ci.yml) checks Python tests, a synthetic sample,
-Docker build, container tests, and persisted output validation on pushes and pull requests.
-No user-supplied secrets are required. The first hosted run passed both jobs on Linux AMD64.
-See [CI details](docs/ci.md) for job order, runner architecture, and scope.
-
-The workflow extension adds a third AI/API job: 30 tests, a synthetic target-free
-fixture, CPU-only AI image build, HTTP smoke test, output reopen and image-content scan. Its
-ARM64 local simulation and the Linux AMD64 hosted run both passed.
-
-## Compose sample workflow
-
-Compose keeps mount settings in versioned YAML. The configuration is read-only and synthetic
-output is writable and persistent. The synthetic run and read-only output revalidation passed
-on macOS ARM64 with Docker Desktop:
-
-```bash
-mkdir -p output/compose-sample
-docker compose config --quiet
-docker compose run --rm pipeline sample --output /app/output
-```
-
-See [the Compose walkthrough](docs/compose.md). Real inputs are configured separately using
-`compose.real-data.yaml`; no observations are mounted for the mock command above.
-
-## Real-data processing stages
-
-Prepare your own authorized input files at the locations in `configs/pipeline.yaml`.
-Time matching requires locally available timing HSD files or validated header caches
-before the selective image-download step can run. The repository does not yet provide
-an automatic header-cache bootstrap from an empty data directory.
+Authorized observation files must be supplied locally. They are never downloaded during tests.
 
 | Order | CLI step | Purpose |
-| --- | --- | --- |
-| 1 | `inventory` | Read radar geometry and representative time |
+| ---: | --- | --- |
+| 1 | `inventory` | Decode radar metadata and classify scan geometry |
 | 2 | `match-time` | Build the radar–satellite time manifest |
-| 3 | `download-himawari YYYYMMDD` | Download selected bands/segments for matched cycles |
-| 4 | `preprocess-day YYYYMMDD` | Generate and validate paired samples |
-| 5 | `preprocess-month` | Coordinate the full August research run |
-| 6 | `build-index` | Build dataset index and summary |
-| 7 | `audit` | Reopen samples and validate dataset invariants |
-| 8 | `provenance` | Record software versions and configuration checksum |
+| 3 | `download-himawari YYYYMMDD` | Fetch only matched bands and segments |
+| 4 | `preprocess-day YYYYMMDD` | Generate and validate aligned samples |
+| 5 | `preprocess-month` | Coordinate the August research run |
+| 6 | `build-index` | Build the dataset index and leakage groups |
+| 7 | `audit` | Reopen products and validate invariants |
+| 8 | `provenance` | Record software and configuration fingerprints |
 
-For example, `python scripts/nhabe_pipeline.py step inventory --date 20250801 --limit 2`
-runs a small inventory. Use a separate path configuration for experiments so that a limited
-inventory does not overwrite a full-run manifest. Index and audit stages currently assume
-the complete August dataset and its configured expected counts.
+Only B08 and B13–B16 segments S04/S05 are downloaded because the common domain intersects those
+full-disk segments. This avoids transferring unused full-disk data while preserving every
+configured pixel required for the Nha Be grid.
 
-## Output schema and quality checks
+## Inference and API
 
-Each real sample has an NPZ containing six arrays and a JSON containing source, grid,
-band order, observation times, matching result, and descriptive quality statistics.
-See the [data dictionary](docs/data-dictionary.md) for field meanings, axis order,
-mask semantics, metadata, CSV statuses, and leakage groups.
+The frozen multimodal checkpoint supports target-free single-sample inference. The CLI writes
+float32 dBZ and an explicit boolean mask, then reopens the NPZ/JSON product before returning
+PASS. A minimal FastAPI wrapper exposes health, immutable model identity and prediction by an
+audited `pair_id`; it does not accept arbitrary uploaded paths or arrays.
 
-| NPZ key | Shape | Type/unit |
-| --- | --- | --- |
-| `radar_reflectivity_dbz` | 256 × 256 | float32, dBZ |
-| `radar_data_valid_mask` | 256 × 256 | bool |
-| `radar_range_support_mask` | 256 × 256 | bool |
-| `himawari_bt` | 5 × 256 × 256 | float32, K |
-| `himawari_band_valid_mask` | 5 × 256 × 256 | bool |
-| `himawari_all_bands_valid_mask` | 256 × 256 | bool |
+The API and CPU-only AI container are portfolio demonstrations without authentication,
+real-time ingestion or operational deployment. See [inference](docs/inference.md) and
+[API contract](docs/api.md).
 
-Validation checks shapes, types, finite-value masks, the AND of band masks, and time tolerance.
-Files use atomic replacement and are reopened after writing. Day manifests describe processing
-outcomes; the dataset index maps sample identifiers to NPZ/JSON paths.
+## Testing and CI
 
-`leakage_group_id` is a dependency key in the dataset index: A/B samples sharing one Himawari
-cycle must remain in the same train/validation/test partition. The five satellite bands are
-stored in the configured channel order. Grid spacing is not the native sensor resolution.
+- **67** preprocessing, timing and data-contract tests;
+- **30** PyTorch dataset, metric, model, training, evaluation and API tests;
+- synthetic NPZ/JSON round-trip checks;
+- preprocessing and CPU-only AI Docker builds;
+- container API smoke test and image-content scan;
+- GitHub-hosted Linux AMD64 CI on pushes and pull requests.
 
-## Limitations and future work
+The latest public main-branch workflow is available under
+[GitHub Actions](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions).
+Tests require no raw observations, checkpoint or repository secret. Details are in
+[docs/testing.md](docs/testing.md) and [docs/ci.md](docs/ci.md).
 
-- Docker and Compose synthetic-contract checks passed locally on ARM64. CI passed Python,
-  preprocessing Docker and AI/API checks on Linux AMD64. Real-data preprocessing inside
-  Docker and the real-data Compose overlay remain to be verified.
-- Dependency versions are pinned at the application level; a complete platform lock is pending.
-- The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
-- No comprehensive radar quality-control chain, multi-month or multi-seed replication,
-  uncertainty estimate or production deployment has been completed. This is reflectivity
-  forecasting, not lightning or rainfall prediction.
-- Raw-data redistribution is not included. A complete bundled-component license and
-  corresponding-source review is required before distributing built container images.
+## Repository map
 
-Future research should repeat the frozen protocol across additional months and seeds, quantify
-uncertainty, test stronger baselines and assess meteorological event-specific performance.
-
-## Forecasting, evaluation and inference
-
-The task is **next-volume reflectivity forecasting with exact 10-minute radar midpoint
-separation**, not rainfall or lightning prediction. The A-only index contains 842 exact
-same-day candidate pairs. No timestamps are rounded and no nearest-time targets are substituted.
-
-The observation-timing protocol uses radar observation end as the research input cutoff
-and takes satellite arrays from the previous nominal cycle's NPZ, not the current radar
-NPZ. All five bands × two segments must have header observation-end and file-creation
-times no later than cutoff. Missing previous cycles are excluded without fallback.
-The real-data header audit retained **822 pairs**: train **508** (August 1–21), validation
-**141** (22–26), test **173** (27–31). All **8,220 source headers** were checked.
-Fifteen candidates lacked the previous cycle in the A index; five crossed a date boundary.
-
-These are observation/creation-time checks, **not verified operational availability**.
-Target midpoints are 514.5–527 seconds after cutoff; this is not a claim of a 10-minute
-forecast from operational issue time. Download and processing latency are unmeasured.
-The old 842-pair diagnostic manifest is preserved and is not the training manifest.
-
-```bash
-python scripts/09_build_forecast_pairs.py \
-  --data-root /path/to/research-workspace \
-  --output output/forecasting/observation_timing
+```text
+configs/                  Frozen preprocessing and forecasting configuration
+src/nhabe_preprocessing/  Radar–satellite preprocessing and validation
+src/nhabe_forecasting/    Dataset, model, evaluation and inference
+scripts/                  Ordered pipeline and experiment entry points
+tests/                    Preprocessing and timing contract tests
+tests_ai/                 PyTorch and API tests
+assets/portfolio/         Published figures with hash provenance
+docs/                     Methods, contracts, results and limitations
+examples/                 Synthetic-demo guidance
 ```
 
-Use an empty output directory. The command reads source headers/JSON and NPZ paths;
-it does not regenerate or overwrite preprocessing arrays. `--limit 2` provides a small
-preview in a separate output directory. See [manifest schema](docs/forecasting_manifest.md),
-[Vietnamese learning notes](docs/forecasting_learning_notes.md), and
-[pair configuration](configs/forecasting.yaml). The working extension has **67 locally
-passing preprocessing/timing tests plus 30 dedicated PyTorch dataset/metric/model/training,
-evaluation and inference tests**. AI Docker/API checks pass locally and on hosted Linux AMD64 CI.
-Official training and one-time locked-test evaluation have completed locally. The preprocessing-only
-milestone remains available as release `v0.1-data-pipeline`; the end-to-end research milestone is
-documented in [CHANGELOG.md](CHANGELOG.md).
+## Reproducibility and limitations
 
-Train-only normalization is fitted from 508 unique radar input sources and 508 unique
-satellite input sources, using finite masked pixels, per-band satellite masks, float64
-accumulation and population standard deviation. No validation/test arrays or target-only
-sources are added. Physical NPZ arrays are unchanged. See [normalization protocol and
-verified statistics](docs/normalization.md).
+- Raw radar/Himawari files, the 8.69 GiB generated dataset, trained weights and personal reports
+  are not distributed.
+- Real-data preprocessing is verified locally but not inside the public Docker demonstration.
+- The audit validates data and software contracts, not meteorological truth or optimal CAPPI
+  parameters.
+- No comprehensive radar quality-control chain, uncertainty analysis, multi-seed replication or
+  multi-month generalization study has been completed.
+- Radar target midpoints occur 514.5–527 seconds after the research cutoff. Download and
+  processing latency are unmeasured, so this is not an operational ten-minute lead-time claim.
+- The task is reflectivity forecasting, not rainfall or lightning prediction.
 
-```bash
-python scripts/10_compute_train_statistics.py \
-  --data-root /path/to/research-workspace \
-  --output output/forecasting/normalization
-```
+For the exact evaluation protocol, read the [locked-test audit](docs/final_evaluation.md),
+[forecast manifest](docs/forecasting_manifest.md) and
+[qualitative-result notes](docs/qualitative_results.md).
 
-The read-only `ForecastDataset` uses separate manifest paths for input radar, previous-cycle
-Himawari and future radar target. It returns finite float32 tensors while preserving boolean
-target masks. Radar-only inputs have shape `(B, 2, 256, 256)`; multimodal inputs have shape
-`(B, 8, 256, 256)`. Missing physical values are zero-padded only in memory after scaling;
-source NPZ files retain NaN and masks. See the [dataset contract](docs/forecasting_dataset.md).
+## Author and license
 
-The first development baseline is persistence: future reflectivity is predicted as the
-current radar field. On all 141 validation pairs, evaluated over 1,139,645 pixels where
-both current and target radar are valid, it obtains **MAE 5.539 dBZ** and **RMSE 8.037 dBZ**.
-Metrics are global valid-pixel-weighted values; no reflectivity threshold is applied. The
-test split was still locked at this baseline-development stage. See the
-[baseline protocol and limitations](docs/persistence_baseline.md).
+Built by [Nguyễn Hoài Phú](https://github.com/nhphu206) as a Data Science portfolio project.
 
-The controlled model candidate is a three-level Small U-Net 2D with 16 base channels,
-GroupNorm and an unrestricted one-channel regression output. The radar-only version has
-482,593 trainable parameters; the multimodal version has 483,457. Real 256×256 CPU
-forward/backward checks pass for both modes, and a multimodal Apple MPS check also passes.
-The architecture contract and early numerical smoke checks are documented in
-[the model contract](docs/model.md); official results are summarized below.
-
-Official development training is now complete for both controlled input modes. Both runs use
-508 train pairs and select checkpoints on the same 141 validation pairs; all 173 test pairs
-remained unopened throughout training. Against persistence (MAE 5.539, RMSE 8.037 dBZ), radar-only reaches MAE
-4.495 and RMSE 6.212 dBZ; radar + Himawari reaches MAE 4.421 and RMSE 6.040 dBZ. The
-multimodal validation improvement over radar-only is 1.64% MAE and 2.77% RMSE. These are
-single-month validation results, not locked-test or operational claims. See the
-[training results](docs/training_results.md) and [run journal](docs/training_journal.md).
-
-The one-time locked-test evaluation was executed from clean source commit `b5b8399` on all
-173 test pairs. Persistence obtains MAE/RMSE 5.011/7.408 dBZ; radar-only obtains
-4.235/5.956 dBZ; multimodal obtains **4.215/5.904 dBZ**. Multimodal reduces test RMSE by
-20.30% relative to persistence and 0.88% relative to radar-only. No model or hyperparameter
-was changed after opening test data. See the [locked-test audit](docs/final_evaluation.md).
-
-The frozen multimodal checkpoint can now generate one audited prediction without opening the
-future target array. The CLI writes float32 dBZ plus an explicit boolean validity mask and
-reopens the NPZ/JSON product before returning PASS. See the
-[single-sample inference contract](docs/inference.md). This is offline research inference,
-not a live API or operational forecast service.
-
-Three deterministic first/middle/last validation cases are also visualized as current radar,
-prediction, target and absolute error. Their display ranges are not processing thresholds, and
-the examples do not replace full-split metrics. See the
-[qualitative validation notes](docs/qualitative_results.md).
-
-A minimal local FastAPI wrapper exposes health, immutable model identity and prediction by
-audited `pair_id`. It does not accept uploaded arrays or paths, and the separate AI image does
-not contain observations or checkpoints. See the [API and AI Docker contract](docs/api.md).
-The service is an offline demonstration without authentication or operational ingestion.
-Local HTTP and an ARM64 Compose run both passed with a real validation input; the CPU-only AI
-image is approximately 266 MiB. Hosted Linux AMD64 CI also built the image, exercised the API,
-reopened its synthetic prediction and confirmed that the image excludes observations and checkpoints.
-
-## License
-
-Project-authored code and accompanying documentation are licensed under
-**GPL-3.0-or-later**; see [LICENSE](LICENSE) and [third-party notices](NOTICE.md).
-Dependencies retain their own licenses. This grant does not cover observation data,
-generated research datasets, or personal reports. Docker images are built for local/CI
-checks; no image has been published to a registry.
+Project-authored code and documentation are licensed under **GPL-3.0-or-later**; see
+[LICENSE](LICENSE) and [third-party notices](NOTICE.md). This grant does not cover observation
+data, generated research datasets, trained checkpoints or personal reports.
