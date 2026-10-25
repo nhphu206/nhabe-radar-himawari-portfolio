@@ -31,6 +31,21 @@ and observation times. The pipeline preserves those differences in metadata whil
 their arrays on one Cartesian grid. Radar classification uses scan metadata rather than
 filename suffixes or file sizes.
 
+## Engineering highlights
+
+- **Metadata-driven ingestion:** distinguishes two radar scan geometries from decoded fields,
+  not filenames or file sizes, and records representative observation times explicitly.
+- **Reproducible geospatial contract:** aligns radar CAPPI and five satellite bands on one
+  versioned 256 × 256 grid while preserving NaN values and boolean validity masks.
+- **Leakage and causality controls:** groups dependent samples, splits by time, audits HSD
+  observation/creation headers and computes normalization from training inputs only.
+- **Controlled modeling:** compares persistence, radar-only and multimodal Small U-Net models
+  with the same split, architecture family, loss, training policy and evaluation mask.
+- **Audited delivery:** validates NPZ/JSON artifacts after writing, fingerprints configs and
+  checkpoints, exposes target-free inference, and runs preprocessing plus AI/API checks in CI.
+- **Portable execution:** separates preprocessing and CPU-only forecast images, uses non-root
+  containers and keeps observations, trained weights and generated arrays outside images/Git.
+
 ## Verified research results
 
 | Measure | August 2025 result |
