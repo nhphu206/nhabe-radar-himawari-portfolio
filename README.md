@@ -196,13 +196,88 @@ stored in the configured channel order. Grid spacing is not the native sensor re
   and in the ARM64 container; the expanded suite's hosted CI also passed both jobs.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
-- No comprehensive radar quality-control chain, lightning labels, forecast lead time,
-  train/test split, training-only normalization, or AI model evaluation has been completed.
+- No comprehensive radar quality-control chain, model training or AI model evaluation
+  has been completed. Forecast pairing/splits and train-only scaling are described below;
+  this is reflectivity forecasting, not lightning or rainfall prediction.
 - Raw-data redistribution is not included. A complete bundled-component license and
   corresponding-source review is required before distributing built container images.
 
 Future model work requires agreed labels and lead times, temporal/group-aware splits, and
 normalization calculated only from training data.
+
+## Forecasting extension (in progress)
+
+The task is **next-volume reflectivity forecasting with exact 10-minute radar midpoint
+separation**, not rainfall or lightning prediction. The A-only index contains 842 exact
+same-day candidate pairs. No timestamps are rounded and no nearest-time targets are substituted.
+
+The observation-timing protocol uses radar observation end as the research input cutoff
+and takes satellite arrays from the previous nominal cycle's NPZ, not the current radar
+NPZ. All five bands × two segments must have header observation-end and file-creation
+times no later than cutoff. Missing previous cycles are excluded without fallback.
+The real-data header audit retained **822 pairs**: train **508** (August 1–21), validation
+**141** (22–26), test **173** (27–31). All **8,220 source headers** were checked.
+Fifteen candidates lacked the previous cycle in the A index; five crossed a date boundary.
+
+These are observation/creation-time checks, **not verified operational availability**.
+Target midpoints are 514.5–527 seconds after cutoff; this is not a claim of a 10-minute
+forecast from operational issue time. Download and processing latency are unmeasured.
+The old 842-pair diagnostic manifest is preserved and is not the training manifest.
+
+```bash
+python scripts/09_build_forecast_pairs.py \
+  --data-root /path/to/research-workspace \
+  --output output/forecasting/observation_timing
+```
+
+Use an empty output directory. The command reads source headers/JSON and NPZ paths;
+it does not regenerate or overwrite preprocessing arrays. `--limit 2` provides a small
+preview in a separate output directory. See [manifest schema](docs/forecasting_manifest.md),
+[Vietnamese learning notes](docs/forecasting_learning_notes.md), and
+[pair configuration](configs/forecasting.yaml). The working extension has **67 locally
+passing preprocessing/timing tests plus 21 dedicated PyTorch dataset/metric/model/training tests**;
+Docker/hosted CI have not yet been rerun for these changes. Official development training
+has completed locally, but locked-test evaluation has not begun. This extension is not part
+of release `v0.1-data-pipeline`.
+
+Train-only normalization is fitted from 508 unique radar input sources and 508 unique
+satellite input sources, using finite masked pixels, per-band satellite masks, float64
+accumulation and population standard deviation. No validation/test arrays or target-only
+sources are added. Physical NPZ arrays are unchanged. See [normalization protocol and
+verified statistics](docs/normalization.md).
+
+```bash
+python scripts/10_compute_train_statistics.py \
+  --data-root /path/to/research-workspace \
+  --output output/forecasting/normalization
+```
+
+The read-only `ForecastDataset` uses separate manifest paths for input radar, previous-cycle
+Himawari and future radar target. It returns finite float32 tensors while preserving boolean
+target masks. Radar-only inputs have shape `(B, 2, 256, 256)`; multimodal inputs have shape
+`(B, 8, 256, 256)`. Missing physical values are zero-padded only in memory after scaling;
+source NPZ files retain NaN and masks. See the [dataset contract](docs/forecasting_dataset.md).
+
+The first development baseline is persistence: future reflectivity is predicted as the
+current radar field. On all 141 validation pairs, evaluated over 1,139,645 pixels where
+both current and target radar are valid, it obtains **MAE 5.539 dBZ** and **RMSE 8.037 dBZ**.
+Metrics are global valid-pixel-weighted values; no reflectivity threshold is applied. The
+test split remains locked. See the [baseline protocol and limitations](docs/persistence_baseline.md).
+
+The controlled model candidate is a three-level Small U-Net 2D with 16 base channels,
+GroupNorm and an unrestricted one-channel regression output. The radar-only version has
+482,593 trainable parameters; the multimodal version has 483,457. Real 256×256 CPU
+forward/backward checks pass for both modes, and a multimodal Apple MPS check also passes.
+These are numerical smoke checks only: no optimizer step, checkpoint or training result exists.
+See the [model contract](docs/model.md).
+
+Official development training is now complete for both controlled input modes. Both runs use
+508 train pairs, select checkpoints on the same 141 validation pairs and leave all 173 test
+pairs unopened. Against persistence (MAE 5.539, RMSE 8.037 dBZ), radar-only reaches MAE
+4.495 and RMSE 6.212 dBZ; radar + Himawari reaches MAE 4.421 and RMSE 6.040 dBZ. The
+multimodal validation improvement over radar-only is 1.64% MAE and 2.77% RMSE. These are
+single-month validation results, not locked-test or operational claims. See the
+[training results](docs/training_results.md) and [run journal](docs/training_journal.md).
 
 ## License
 

@@ -37,3 +37,7 @@ it does not confirm real-data gridding, full meteorological quality control, or 
 References: [GitHub Actions quickstart](https://docs.github.com/en/actions/get-started/quickstart),
 [checkout](https://github.com/actions/checkout),
 [setup-python](https://github.com/actions/setup-python).
+
+The in-progress forecasting extension currently has 67 locally passing tests. These tests
+use generated headers/temporary files and require no observation downloads or secrets.
+No hosted CI result is claimed for the unpushed forecasting changes.

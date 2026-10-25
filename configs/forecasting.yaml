@@ -1,0 +1,17 @@
+schema_version: nhabe-forecasting-observation-timing-v1
+task: Next-volume reflectivity forecasting with exact 10-minute radar midpoint separation
+radar_signature: A
+time_column: radar_representative_time_utc
+lead_time_minutes: 10
+matching: exact_timestamp
+allow_cross_day: false
+input_cutoff: radar_observation_end_utc
+satellite_nominal_lag_minutes: 10
+satellite_selection: exact_previous_nominal_cycle
+require_header_observation_end_before_cutoff: true
+require_header_creation_before_cutoff: true
+availability_scope: observation_and_creation_timestamps_only_not_operational_latency
+splits:
+  train: ['20250801', '20250821']
+  validation: ['20250822', '20250826']
+  test: ['20250827', '20250831']

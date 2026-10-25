@@ -44,7 +44,7 @@ COPY pyproject.toml README.md LICENSE NOTICE.md ./
 COPY src/ ./src/
 COPY scripts/ ./scripts/
 COPY tests/ ./tests/
-COPY configs/pipeline.yaml ./configs/pipeline.yaml
+COPY configs/pipeline.yaml configs/forecasting.yaml configs/normalization.yaml ./configs/
 
 # Code/configuration stay root-owned; only outputs and staging are writable.
 RUN groupadd --gid 10001 pipeline \

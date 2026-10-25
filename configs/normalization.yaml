@@ -1,0 +1,10 @@
+schema_version: nhabe-train-normalization-policy-v1
+fit_split: train
+radar_population: unique_train_input_samples
+satellite_population: unique_train_satellite_samples
+weighting: valid_pixel_weighted
+satellite_validity: per_band_mask
+accumulator_dtype: float64
+standard_deviation_ddof: 0
+include_target_only_samples: false
+physical_arrays_zero_fill: false

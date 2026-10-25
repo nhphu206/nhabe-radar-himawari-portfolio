@@ -1,0 +1,11 @@
+schema_version: nhabe-forecast-evaluation-policy-v1
+primary_domain: input_radar_valid_and_target_valid
+aggregation: valid_pixel_weighted
+units: dBZ
+metrics:
+  - MAE
+  - RMSE
+baseline: persistence_current_radar
+model_selection_split: validation
+test_policy: locked_until_model_selection_complete
+reflectivity_threshold: null

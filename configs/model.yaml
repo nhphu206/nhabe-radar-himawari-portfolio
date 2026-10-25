@@ -1,0 +1,19 @@
+schema_version: nhabe-small-unet-v1
+architecture: small_unet_2d
+base_channels: 16
+encoder_depth: 3
+convolutions_per_block: 2
+kernel_size: 3
+activation: ReLU
+normalization: GroupNorm
+group_norm_groups: 8
+downsampling: MaxPool2d
+upsampling: ConvTranspose2d
+output_channels: 1
+output_activation: none
+spatial_shape:
+  - 256
+  - 256
+input_channels:
+  radar: 2
+  multimodal: 8
