@@ -121,3 +121,14 @@ The frozen outputs are `final_test_summary.json`, `final_test_samples.csv`,
 `method_comparison.csv` and `checkpoint_audit.json`. Source and docs must be committed before
 the evaluator is allowed to construct a test Dataset. No parameter or model selection change
 is allowed after results are visible.
+
+### Day 19 result: PASS
+
+Source commit `b5b839918ed6f186f488f3c4e8d1b3c2434beac2` was clean and all checkpoint/config
+fingerprints matched. The evaluator opened 173 test pairs once and scored all methods on the
+same 1,746,163 common-valid pixels. Persistence MAE/RMSE is `5.011121 / 7.407763 dBZ`;
+radar-only is `4.234776 / 5.956063 dBZ`; multimodal is `4.215341 / 5.903871 dBZ`.
+
+Multimodal test RMSE is 20.30% below persistence and 0.88% below radar-only. This confirms
+the validation ordering but shows a smaller multimodal advantage. No model/config change was
+made after test access. The complete audit is documented in `final_evaluation.md`.

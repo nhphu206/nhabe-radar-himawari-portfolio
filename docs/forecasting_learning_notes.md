@@ -428,3 +428,25 @@ Không kết luận multimodal tốt hơn một cách tổng quát vì mới có
 trạm. Đây là kết quả validation phục vụ model development; chưa phải test result hay bằng
 chứng vận hành thực tế. Xem [training journal](training_journal.md) và
 [official training results](training_results.md).
+
+## 16. Day 19 — đánh giá locked test (25/10/2026)
+
+Trước khi mở test, toàn bộ source/config/docs được commit tại `b5b8399`; repository sạch.
+Final evaluator kiểm tra lại SHA256 của manifest, normalization, config, history và hai
+checkpoint. Hai checkpoint được mở bằng `weights_only=True`. Sau đó mới tạo Dataset test.
+
+173 test pairs tạo 11.337.728 grid cells; giao mask hợp lệ dùng để chấm gồm 1.746.163 pixel
+(15,401%). Cả ba phương pháp dùng đúng cùng pair order và common mask.
+
+| Phương pháp | Test MAE | Test RMSE |
+| --- | ---: | ---: |
+| Persistence | 5,011121 dBZ | 7,407763 dBZ |
+| Radar-only U-Net | 4,234776 dBZ | 5,956063 dBZ |
+| Radar + Himawari U-Net | 4,215341 dBZ | 5,903871 dBZ |
+
+Radar-only giảm test RMSE 19,60% so với persistence. Multimodal giảm 20,30% so với
+persistence và 0,88% so với radar-only. Thứ tự giống validation nhưng lợi thế multimodal nhỏ
+hơn. Không điều chỉnh model/hyperparameter sau khi xem test.
+
+Kết quả ủng hộ chọn multimodal làm candidate cho portfolio, không chứng minh satellite luôn
+tốt hơn vì chỉ có một seed, một tháng và một trạm. Xem [locked-test audit](final_evaluation.md).

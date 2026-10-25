@@ -61,6 +61,6 @@ metadata type. They are documented in the journal and are not reported as model 
 
 ## Remaining evaluation boundary
 
-The official training milestone is complete. The 173-pair test split remains locked until
-the user explicitly begins final evaluation. No inference API, production monitoring,
-probabilistic uncertainty or multi-month generalization claim is part of this result.
+The official training milestone is complete. The test split was subsequently opened once
+from frozen commit `b5b8399`; see `final_evaluation.md`. No inference API, production
+monitoring, probabilistic uncertainty or multi-month generalization claim is part of this result.

@@ -279,6 +279,12 @@ multimodal validation improvement over radar-only is 1.64% MAE and 2.77% RMSE. T
 single-month validation results, not locked-test or operational claims. See the
 [training results](docs/training_results.md) and [run journal](docs/training_journal.md).
 
+The one-time locked-test evaluation was executed from clean source commit `b5b8399` on all
+173 test pairs. Persistence obtains MAE/RMSE 5.011/7.408 dBZ; radar-only obtains
+4.235/5.956 dBZ; multimodal obtains **4.215/5.904 dBZ**. Multimodal reduces test RMSE by
+20.30% relative to persistence and 0.88% relative to radar-only. No model or hyperparameter
+was changed after opening test data. See the [locked-test audit](docs/final_evaluation.md).
+
 ## License
 
 Project-authored code and accompanying documentation are licensed under
