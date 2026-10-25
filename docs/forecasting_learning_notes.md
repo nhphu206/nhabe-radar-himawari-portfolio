@@ -503,3 +503,14 @@ Job cài Torch CPU-only, chạy 30 tests, build Docker AI, khởi động API, g
 mở lại NPZ/JSON, kiểm tra image không có data/checkpoint và luôn dọn container. Mô phỏng local
 ARM64 PASS với 34.621 valid pixels; future target không được đọc. Workflow YAML/structure PASS.
 Chưa push nên chưa được gọi là GitHub AMD64 CI PASS.
+
+## 21. Day 25 — xác nhận CI AI trên Linux AMD64 (25/10/2026)
+
+Sáu commit AI được push cùng nhau sau khi local audit PASS. GitHub Actions run 40157818399
+hoàn thành xanh cả ba job: Python 1 phút 7 giây, AI/API 1 phút 54 giây và preprocessing Docker
+1 phút 53 giây. Job AI chạy lại 30 tests, tạo fixture synthetic không có future target, build
+CPU-only image, gọi health/model-info/predict, mở lại prediction, quét image và dọn container.
+
+Kết quả này xác nhận workflow synthetic chạy được trên Linux AMD64 ngoài máy phát triển ARM64.
+Nó không phải bằng chứng model chạy production, không thay cho đánh giá locked test và không
+xác nhận preprocessing RAW/HSD thật bên trong Docker.

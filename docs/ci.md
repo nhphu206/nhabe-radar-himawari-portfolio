@@ -7,6 +7,10 @@ Python took 1 minute 2 seconds; Docker checks took 1 minute 28 seconds.
 The expanded test suite subsequently passed both jobs in
 [run #3](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38147133453),
 confirmed by the project owner's screenshot; Docker checks took 1 minute 40 seconds.
+The first three-job workflow, including the AI/API image, passed on Linux AMD64 in
+[run 40157818399](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/40157818399):
+Python checks took 1 minute 7 seconds, AI/API checks 1 minute 54 seconds, and preprocessing
+Docker checks 1 minute 53 seconds.
 
 1. **Python tests and synthetic sample:** install Python 3.12 and the declared dependencies,
    install the project package, check dependency consistency and syntax, run `doctor`, run
@@ -22,7 +26,8 @@ confirmed by the project owner's screenshot; Docker checks took 1 minute 40 seco
 
 The runner is `ubuntu-24.04` (standard x64 GitHub-hosted runner). The first CI run checked
 Linux AMD64 in addition to the Linux ARM64 environment already tested locally. Each job has
-a 30-minute timeout; new commits cancel obsolete runs for the same ref.
+a bounded timeout (30 minutes for preprocessing jobs and 35 minutes for AI); new commits
+cancel obsolete runs for the same ref.
 
 The workflow needs no user-supplied secrets. GitHub's automatic repository token has only
 `contents: read`, and checkout does not persist credentials. No raw observations are downloaded,
@@ -46,5 +51,6 @@ References: [GitHub Actions quickstart](https://docs.github.com/en/actions/get-s
 The extended workflow and synthetic AI fixture were parsed and simulated locally on ARM64:
 fixture generation, healthy API container, all three endpoints, prediction reopen and static
 image scan passed. The forecasting extension currently has 67 preprocessing/timing tests and
-30 dedicated AI/API tests passing locally. No hosted AI CI result is claimed until these
-changes run successfully on GitHub's AMD64 runner.
+30 dedicated AI/API tests passing locally. The same contract passed on GitHub's Linux AMD64
+runner in run 40157818399. This verifies portability of the synthetic workflow, not model
+skill on unseen meteorological observations or real-time production readiness.

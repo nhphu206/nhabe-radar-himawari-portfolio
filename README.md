@@ -135,7 +135,7 @@ See [CI details](docs/ci.md) for job order, runner architecture, and scope.
 
 The workflow extension adds a third AI/API job: 30 tests, a synthetic target-free
 fixture, CPU-only AI image build, HTTP smoke test, output reopen and image-content scan. Its
-ARM64 local simulation passed; Linux AMD64 hosted status is still pending.
+ARM64 local simulation and the Linux AMD64 hosted run both passed.
 
 ## Compose sample workflow
 
@@ -247,7 +247,7 @@ preview in a separate output directory. See [manifest schema](docs/forecasting_m
 [Vietnamese learning notes](docs/forecasting_learning_notes.md), and
 [pair configuration](configs/forecasting.yaml). The working extension has **67 locally
 passing preprocessing/timing tests plus 30 dedicated PyTorch dataset/metric/model/training,
-evaluation and inference tests**. AI Docker/API checks pass locally; hosted AI CI is pending.
+evaluation and inference tests**. AI Docker/API checks pass locally and on hosted Linux AMD64 CI.
 Official training and one-time locked-test evaluation have completed locally. This extension is not part
 of release `v0.1-data-pipeline`.
 
@@ -313,7 +313,8 @@ audited `pair_id`. It does not accept uploaded arrays or paths, and the separate
 not contain observations or checkpoints. See the [API and AI Docker contract](docs/api.md).
 The service is an offline demonstration without authentication or operational ingestion.
 Local HTTP and an ARM64 Compose run both passed with a real validation input; the CPU-only AI
-image is approximately 266 MiB. Hosted AMD64 CI for this new image remains pending.
+image is approximately 266 MiB. Hosted Linux AMD64 CI also built the image, exercised the API,
+reopened its synthetic prediction and confirmed that the image excludes observations and checkpoints.
 
 ## License
 
