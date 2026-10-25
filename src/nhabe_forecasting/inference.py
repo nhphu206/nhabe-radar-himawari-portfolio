@@ -27,26 +27,6 @@ PREDICTION_ARRAY = "predicted_reflectivity_dbz"
 PREDICTION_MASK = "prediction_valid_mask"
 
 
-def _pair_split(manifest_path: Path, pair_id: str) -> str:
-    if re.fullmatch(r"[A-Za-z0-9_.-]+", pair_id) is None:
-        raise ValueError("pair_id contains characters unsafe for an output filename")
-    with manifest_path.open(newline="", encoding="utf-8") as handle:
-        matches = [row for row in csv.DictReader(handle) if row.get("pair_id") == pair_id]
-    if len(matches) != 1:
-        raise ValueError(f"Expected exactly one manifest row for pair_id: {pair_id}")
-    split = matches[0].get("split", "")
-    if split not in {"train", "validation", "test"}:
-        raise ValueError("Inference pair has an unsupported split")
-    return split
-
-
-def _dataset_index(dataset: ForecastDataset, pair_id: str) -> int:
-    matches = [index for index, row in enumerate(dataset.rows) if row["pair_id"] == pair_id]
-    if len(matches) != 1:
-        raise ValueError(f"Expected exactly one dataset row for pair_id: {pair_id}")
-    return matches[0]
-
-
 def _load_model(
     checkpoint_path: Path,
     manifest_path: Path,
@@ -103,7 +83,131 @@ def validate_prediction_files(npz_path: Path, json_path: Path, pair_id: str) -> 
     return metadata
 
 
-@torch.no_grad()
+class MultimodalInferenceEngine:
+    """Load the frozen model once and create audited products for manifest pair IDs."""
+
+    def __init__(
+        self, *, data_root: Path, manifest_path: Path, normalization_path: Path,
+        model_config_path: Path, checkpoint_path: Path, requested_device: str = "auto",
+    ) -> None:
+        paths = [manifest_path, normalization_path, model_config_path, checkpoint_path]
+        if not all(path.is_file() for path in paths):
+            raise FileNotFoundError("An inference manifest/config/checkpoint file is missing")
+        self.data_root = data_root.resolve()
+        self.manifest_path = manifest_path.resolve()
+        self.normalization_path = normalization_path.resolve()
+        self.model_config_path = model_config_path.resolve()
+        self.checkpoint_path = checkpoint_path.resolve()
+        self.device = choose_device(requested_device)
+        self.model, self.checkpoint = _load_model(
+            self.checkpoint_path, self.manifest_path, self.normalization_path,
+            self.model_config_path, self.device,
+        )
+        with self.manifest_path.open(newline="", encoding="utf-8") as handle:
+            manifest_rows = list(csv.DictReader(handle))
+        available_splits = sorted({row.get("split", "") for row in manifest_rows})
+        if not available_splits or any(
+                split not in {"train", "validation", "test"} for split in available_splits):
+            raise ValueError("Inference manifest contains an unsupported or missing split")
+        self.datasets = {
+            split: ForecastDataset(
+                self.manifest_path, self.normalization_path, self.data_root,
+                split=split, input_mode="multimodal",
+            )
+            for split in available_splits
+        }
+        self.pair_locations = {
+            row["pair_id"]: (split, index)
+            for split, dataset in self.datasets.items()
+            for index, row in enumerate(dataset.rows)
+        }
+        if len(self.pair_locations) != sum(len(dataset) for dataset in self.datasets.values()):
+            raise ValueError("Forecast manifest contains duplicate pair identifiers")
+
+    def model_info(self) -> dict[str, Any]:
+        """Return public immutable model identity without local filesystem paths."""
+        return {
+            "input_mode": "multimodal",
+            "checkpoint_epoch": int(self.checkpoint["epoch"]),
+            "checkpoint_sha256": file_sha256(self.checkpoint_path),
+            "manifest_sha256": file_sha256(self.manifest_path),
+            "normalization_sha256": file_sha256(self.normalization_path),
+            "model_config_sha256": file_sha256(self.model_config_path),
+            "device": str(self.device),
+            "available_pairs": len(self.pair_locations),
+            "output_schema": INFERENCE_SCHEMA,
+        }
+
+    @torch.no_grad()
+    def predict(self, pair_id: str, output_dir: Path) -> dict[str, Any]:
+        """Predict one future field without reading its future target array."""
+        if re.fullmatch(r"[A-Za-z0-9_.-]+", pair_id) is None:
+            raise ValueError("pair_id contains characters unsafe for an output filename")
+        if pair_id not in self.pair_locations:
+            raise KeyError(pair_id)
+        output_dir = output_dir.resolve()
+        if output_dir.exists() and any(output_dir.iterdir()):
+            raise FileExistsError("Inference output directory must be empty")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        split, index = self.pair_locations[pair_id]
+        dataset = self.datasets[split]
+        sample = dataset.input_item(index)
+        started = time.perf_counter()
+        prediction = self.model(sample["inputs"].unsqueeze(0).to(self.device))[0, 0]
+        if self.device.type == "mps":
+            torch.mps.synchronize()
+        runtime = time.perf_counter() - started
+        prediction = prediction.detach().cpu().numpy().astype(np.float32, copy=False)
+        radar_stats = dataset.normalization["fields"]["radar_reflectivity_dbz"]
+        prediction = prediction * np.float32(radar_stats["std"]) + np.float32(
+            radar_stats["mean"]
+        )
+        mask = sample["input_radar_mask"][0].numpy().astype(np.bool_, copy=False)
+        serialized = np.full((256, 256), np.nan, dtype=np.float32)
+        serialized[mask] = prediction[mask]
+        if not np.all(np.isfinite(serialized[mask])):
+            raise RuntimeError("Inference produced a non-finite value on a valid pixel")
+
+        npz_path = output_dir / f"{pair_id}_prediction.npz"
+        json_path = output_dir / f"{pair_id}_prediction.json"
+        atomic_write_npz(npz_path, {PREDICTION_ARRAY: serialized, PREDICTION_MASK: mask})
+        valid = serialized[mask]
+        model_info = self.model_info()
+        metadata = {
+            "schema_version": INFERENCE_SCHEMA,
+            "status": "PASS",
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "pair_id": pair_id,
+            "split": split,
+            "input_sample_id": sample["input_sample_id"],
+            "satellite_sample_id": sample["satellite_sample_id"],
+            "input_time_utc": sample["input_time_utc"],
+            "forecast_valid_time_utc": sample["target_time_utc"],
+            "lead_time_minutes": 10,
+            **{key: model_info[key] for key in (
+                "input_mode", "checkpoint_epoch", "checkpoint_sha256", "manifest_sha256",
+                "normalization_sha256", "model_config_sha256", "device",
+            )},
+            "runtime_seconds": runtime,
+            "array_shape": [256, 256],
+            "array_dtype": "float32",
+            "unit": "dBZ",
+            "valid_mask_rule": "input_radar_valid_mask",
+            "valid_pixels": int(mask.sum()),
+            "valid_percent": 100.0 * float(mask.mean()),
+            "valid_value_min_dbz": float(valid.min()),
+            "valid_value_mean_dbz": float(valid.mean(dtype=np.float64)),
+            "valid_value_max_dbz": float(valid.max()),
+            "missing_value_policy": "NaN where prediction_valid_mask is false; never zero-filled",
+            "future_target_array_read": False,
+            "npz_path": str(npz_path),
+            "npz_sha256": file_sha256(npz_path),
+        }
+        atomic_write_json(json_path, metadata)
+        reopened = validate_prediction_files(npz_path, json_path, pair_id)
+        return {**reopened, "npz_path": str(npz_path), "json_path": str(json_path)}
+
+
 def run_multimodal_inference(
     *,
     data_root: Path,
@@ -115,76 +219,10 @@ def run_multimodal_inference(
     output_dir: Path,
     requested_device: str = "auto",
 ) -> dict[str, Any]:
-    """Predict one future reflectivity field without reading the future target array."""
-    paths = [manifest_path, normalization_path, model_config_path, checkpoint_path]
-    if not all(path.is_file() for path in paths):
-        raise FileNotFoundError("An inference manifest/config/checkpoint file is missing")
-    output_dir = output_dir.resolve()
-    if output_dir.exists() and any(output_dir.iterdir()):
-        raise FileExistsError("Inference output directory must be empty")
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    split = _pair_split(manifest_path, pair_id)
-    dataset = ForecastDataset(
-        manifest_path, normalization_path, data_root,
-        split=split, input_mode="multimodal",
+    """Load a frozen engine and predict one audited manifest pair."""
+    engine = MultimodalInferenceEngine(
+        data_root=data_root, manifest_path=manifest_path,
+        normalization_path=normalization_path, model_config_path=model_config_path,
+        checkpoint_path=checkpoint_path, requested_device=requested_device,
     )
-    sample = dataset.input_item(_dataset_index(dataset, pair_id))
-    device = choose_device(requested_device)
-    model, checkpoint = _load_model(
-        checkpoint_path, manifest_path, normalization_path, model_config_path, device,
-    )
-    started = time.perf_counter()
-    prediction = model(sample["inputs"].unsqueeze(0).to(device))[0, 0]
-    if device.type == "mps":
-        torch.mps.synchronize()
-    runtime = time.perf_counter() - started
-    prediction = prediction.detach().cpu().numpy().astype(np.float32, copy=False)
-    radar_stats = dataset.normalization["fields"]["radar_reflectivity_dbz"]
-    prediction = prediction * np.float32(radar_stats["std"]) + np.float32(radar_stats["mean"])
-    mask = sample["input_radar_mask"][0].numpy().astype(np.bool_, copy=False)
-    serialized = np.full((256, 256), np.nan, dtype=np.float32)
-    serialized[mask] = prediction[mask]
-    if not np.all(np.isfinite(serialized[mask])):
-        raise RuntimeError("Inference produced a non-finite value on a valid pixel")
-
-    npz_path = output_dir / f"{pair_id}_prediction.npz"
-    json_path = output_dir / f"{pair_id}_prediction.json"
-    atomic_write_npz(npz_path, {PREDICTION_ARRAY: serialized, PREDICTION_MASK: mask})
-    valid = serialized[mask]
-    metadata = {
-        "schema_version": INFERENCE_SCHEMA,
-        "status": "PASS",
-        "created_utc": datetime.now(timezone.utc).isoformat(),
-        "pair_id": pair_id,
-        "split": split,
-        "input_sample_id": sample["input_sample_id"],
-        "satellite_sample_id": sample["satellite_sample_id"],
-        "input_time_utc": sample["input_time_utc"],
-        "forecast_valid_time_utc": sample["target_time_utc"],
-        "lead_time_minutes": 10,
-        "input_mode": "multimodal",
-        "checkpoint_epoch": int(checkpoint["epoch"]),
-        "checkpoint_sha256": file_sha256(checkpoint_path),
-        "manifest_sha256": file_sha256(manifest_path),
-        "normalization_sha256": file_sha256(normalization_path),
-        "model_config_sha256": file_sha256(model_config_path),
-        "device": str(device),
-        "runtime_seconds": runtime,
-        "array_shape": [256, 256],
-        "array_dtype": "float32",
-        "unit": "dBZ",
-        "valid_mask_rule": "input_radar_valid_mask",
-        "valid_pixels": int(mask.sum()),
-        "valid_percent": 100.0 * float(mask.mean()),
-        "valid_value_min_dbz": float(valid.min()),
-        "valid_value_mean_dbz": float(valid.mean(dtype=np.float64)),
-        "valid_value_max_dbz": float(valid.max()),
-        "missing_value_policy": "NaN where prediction_valid_mask is false; never zero-filled",
-        "future_target_array_read": False,
-        "npz_path": str(npz_path),
-        "npz_sha256": file_sha256(npz_path),
-    }
-    atomic_write_json(json_path, metadata)
-    reopened = validate_prediction_files(npz_path, json_path, pair_id)
-    return {**reopened, "npz_path": str(npz_path), "json_path": str(json_path)}
+    return engine.predict(pair_id, output_dir)

@@ -1,0 +1,44 @@
+name: nhabe-forecast-api
+
+services:
+  forecast-api:
+    image: nhabe-forecast-api:dev
+    build:
+      context: .
+      dockerfile: Dockerfile.ai
+    read_only: true
+    user: "${AI_UID:-10002}:${AI_GID:-10002}"
+    ports:
+      - "127.0.0.1:${AI_PORT:-8000}:8000"
+    tmpfs:
+      - /tmp
+    volumes:
+      - type: bind
+        source: ${AI_DATA_ROOT:?Set AI_DATA_ROOT to the research workspace}
+        target: /data
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AI_MANIFEST_FILE:?Set AI_MANIFEST_FILE to forecast_pairs.csv}
+        target: /artifacts/forecast_pairs.csv
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AI_NORMALIZATION_FILE:?Set AI_NORMALIZATION_FILE to normalization.json}
+        target: /artifacts/normalization.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AI_CHECKPOINT_FILE:?Set AI_CHECKPOINT_FILE to best_model.pt}
+        target: /models/best_model.pt
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${AI_OUTPUT_DIR:?Set AI_OUTPUT_DIR to an existing writable directory}
+        target: /app/output
+        bind:
+          create_host_path: false

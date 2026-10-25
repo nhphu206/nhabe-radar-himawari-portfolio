@@ -476,3 +476,18 @@ Ba RMSE lần lượt là 10,214; 5,095 và 3,622 dBZ trên common-valid mask. S
 độ khó từng tình huống không đồng nhất. Chỉ ba mẫu không đại diện cho phân phối toàn validation,
 vì vậy kết luận định lượng vẫn phải dựa trên metric global của 141 validation và 173 test pairs.
 Dải màu -10–60 dBZ và error 0–30 dBZ chỉ là display range, không threshold dữ liệu.
+
+## 19. Day 23 — FastAPI và Docker AI tách riêng (25/10/2026)
+
+API chỉ nhận `pair_id` có trong audited manifest. Client không được gửi path, array hay thay
+config. Ba endpoint gồm `/health`, `/model-info` và `/predict`. Model nạp một lần khi startup;
+một lock tuần tự hóa inference. Output đã tồn tại trả 409 để không ghi đè, pair không có trả 404.
+
+Docker AI tách khỏi preprocessing image. Dữ liệu, manifest, normalization và checkpoint đều là
+read-only mounts; output là mount ghi. Port Compose chỉ bind localhost. Lần build đầu được dừng
+vì PyTorch Linux mặc định kéo CUDA; bản sửa dùng official CPU index, giữ Torch 2.14.1.
+
+Kết quả: image 278.781.609 byte (~266 MiB), `torch 2.14.1+cpu`, CUDA `None`, dependency check
+PASS. Compose healthy; health/model-info/predict qua HTTP thật PASS; output `[256,256]` float32
+và mask mở lại PASS. Image không chứa checkpoint, NPZ hay RAW. Đây vẫn là offline research API,
+không có auth/TLS/rate limit/real-time ingestion và không được gọi là production.

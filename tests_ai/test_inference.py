@@ -11,10 +11,12 @@ import tempfile
 import unittest
 
 import numpy as np
+from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from nhabe_forecasting.api import APISettings, create_app
 from nhabe_forecasting.inference import run_multimodal_inference, validate_prediction_files
 from nhabe_forecasting.model import MODEL_CONFIG, SmallUNet2D
 from nhabe_forecasting.normalization import BANDS, file_sha256
@@ -128,6 +130,36 @@ class InferenceTests(unittest.TestCase):
                 checkpoint_path=self.checkpoint, pair_id="../pair-1",
                 output_dir=self.root / "unsafe", requested_device="cpu",
             )
+
+    def test_api_health_model_info_prediction_and_errors(self) -> None:
+        settings = APISettings(
+            data_root=self.root, manifest_path=self.manifest,
+            normalization_path=self.normalization, model_config_path=self.model_config,
+            checkpoint_path=self.checkpoint, output_root=self.root / "api-output", device="cpu",
+        )
+        with TestClient(create_app(settings)) as client:
+            health = client.get("/health")
+            self.assertEqual(health.status_code, 200)
+            self.assertEqual(health.json()["status"], "READY")
+            info = client.get("/model-info")
+            self.assertEqual(info.status_code, 200)
+            self.assertEqual(info.json()["available_pairs"], 1)
+            self.assertNotIn(str(self.root), info.text)
+
+            prediction = client.post("/predict", json={"pair_id": "pair-1"})
+            self.assertEqual(prediction.status_code, 200, prediction.text)
+            body = prediction.json()
+            self.assertEqual(body["artifact_id"], "pair-1")
+            self.assertFalse(body["future_target_array_read"])
+            self.assertFalse(body["npz_artifact"].startswith("/"))
+            self.assertTrue((settings.output_root / body["npz_artifact"]).is_file())
+
+            duplicate = client.post("/predict", json={"pair_id": "pair-1"})
+            self.assertEqual(duplicate.status_code, 409)
+            unknown = client.post("/predict", json={"pair_id": "missing"})
+            self.assertEqual(unknown.status_code, 404)
+            extra = client.post("/predict", json={"pair_id": "pair-1", "path": "/tmp"})
+            self.assertEqual(extra.status_code, 422)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,11 @@
 # Only files needed to install/run/test the pipeline enter the build context.
 **
 !Dockerfile
+!Dockerfile.ai
 !.dockerignore
 !requirements.txt
+!requirements-forecasting.txt
+!requirements-api.txt
 !pyproject.toml
 !README.md
 !LICENSE
@@ -17,6 +20,7 @@
 !configs/pipeline.yaml
 !configs/forecasting.yaml
 !configs/normalization.yaml
+!configs/model.yaml
 
 # Exclude private material and caches even inside an allowed directory.
 **/.git

@@ -242,7 +242,7 @@ it does not regenerate or overwrite preprocessing arrays. `--limit 2` provides a
 preview in a separate output directory. See [manifest schema](docs/forecasting_manifest.md),
 [Vietnamese learning notes](docs/forecasting_learning_notes.md), and
 [pair configuration](configs/forecasting.yaml). The working extension has **67 locally
-passing preprocessing/timing tests plus 29 dedicated PyTorch dataset/metric/model/training,
+passing preprocessing/timing tests plus 30 dedicated PyTorch dataset/metric/model/training,
 evaluation and inference tests**; Docker/hosted CI have not yet been rerun for these changes.
 Official training and one-time locked-test evaluation have completed locally. This extension is not part
 of release `v0.1-data-pipeline`.
@@ -303,6 +303,13 @@ Three deterministic first/middle/last validation cases are also visualized as cu
 prediction, target and absolute error. Their display ranges are not processing thresholds, and
 the examples do not replace full-split metrics. See the
 [qualitative validation notes](docs/qualitative_results.md).
+
+A minimal local FastAPI wrapper exposes health, immutable model identity and prediction by
+audited `pair_id`. It does not accept uploaded arrays or paths, and the separate AI image does
+not contain observations or checkpoints. See the [API and AI Docker contract](docs/api.md).
+The service is an offline demonstration without authentication or operational ingestion.
+Local HTTP and an ARM64 Compose run both passed with a real validation input; the CPU-only AI
+image is approximately 266 MiB. Hosted AMD64 CI for this new image remains pending.
 
 ## License
 

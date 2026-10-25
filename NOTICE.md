@@ -29,6 +29,10 @@ installed in a container. Bundled and transitive components can have additional 
 | NumPy | 2.5.2 | [BSD and bundled third-party notices](https://github.com/numpy/numpy/blob/main/LICENSE.txt) |
 | PyYAML | 6.0.3 | [MIT](https://github.com/yaml/pyyaml/blob/main/LICENSE) |
 | aiohttp | 3.14.3 | [Apache-2.0 and bundled notices](https://github.com/aio-libs/aiohttp/blob/master/LICENSE.txt) |
+| PyTorch | 2.14.1 | [BSD-3-Clause](https://github.com/pytorch/pytorch/blob/main/LICENSE) |
+| FastAPI | 0.162.0 | [MIT](https://github.com/fastapi/fastapi/blob/master/LICENSE) |
+| Uvicorn | 0.54.0 | [BSD-3-Clause](https://github.com/Kludex/uvicorn/blob/master/LICENSE.md) |
+| HTTPX2 | 2.13.0 | [BSD-3-Clause](https://github.com/pydantic/httpx/blob/main/LICENSE.md) |
 
 The HSD timing reader imports SatPy's header dtype definitions rather than including
 a copied SatPy reader implementation. It uses private API names, so compatibility is
