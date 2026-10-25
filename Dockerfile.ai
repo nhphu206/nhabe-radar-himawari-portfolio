@@ -24,12 +24,14 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY LICENSE NOTICE.md README.md ./
 COPY src/ ./src/
 COPY configs/model.yaml ./configs/model.yaml
+COPY scripts/20_create_synthetic_api_fixture.py ./scripts/20_create_synthetic_api_fixture.py
 
 RUN groupadd --gid 10002 forecast \
     && useradd --uid 10002 --gid forecast --create-home forecast \
     && mkdir -p /app/output \
     && chown -R forecast:forecast /app/output \
     && python -m compileall -q /app/src \
+    && python -m compileall -q /app/scripts \
     && python -c "import fastapi, torch, uvicorn; import nhabe_forecasting.api"
 
 USER forecast

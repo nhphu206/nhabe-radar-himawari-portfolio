@@ -123,6 +123,31 @@ class InferenceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--checkpoint", result.stdout)
 
+    def test_synthetic_dashboard_fixture_has_explicit_target(self) -> None:
+        fixture = self.root / "interactive-fixture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts/20_create_synthetic_api_fixture.py"),
+                "--output", str(fixture), "--include-historical-target",
+            ],
+            cwd=self.root, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        summary = json.loads((fixture / "fixture_summary.json").read_text())
+        self.assertEqual(summary["sample_kind"], "SYNTHETIC_INTERACTIVE_DEMO_FIXTURE")
+        self.assertTrue(summary["future_target_file_exists"])
+        self.assertFalse(summary["meteorological_observation"])
+        self.assertFalse(summary["trained_checkpoint"])
+        with np.load(fixture / "future_target.npz", allow_pickle=False) as arrays:
+            self.assertEqual(arrays["radar_reflectivity_dbz"].shape, (256, 256))
+            self.assertEqual(arrays["radar_reflectivity_dbz"].dtype, np.float32)
+            self.assertEqual(arrays["radar_data_valid_mask"].dtype, np.bool_)
+            self.assertTrue(np.array_equal(
+                np.isfinite(arrays["radar_reflectivity_dbz"]),
+                arrays["radar_data_valid_mask"],
+            ))
+
     def test_unsafe_pair_identifier_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "unsafe"):
             run_multimodal_inference(
@@ -153,6 +178,8 @@ class InferenceTests(unittest.TestCase):
             info = client.get("/model-info")
             self.assertEqual(info.status_code, 200)
             self.assertEqual(info.json()["available_pairs"], 1)
+            self.assertTrue(info.json()["trained_checkpoint"])
+            self.assertEqual(info.json()["artifact_kind"], "AUDITED_RESEARCH_ARTIFACT")
             self.assertNotIn(str(self.root), info.text)
 
             pairs = client.get("/pairs?split=validation&limit=50")

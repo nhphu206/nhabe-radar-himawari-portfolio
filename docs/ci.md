@@ -19,11 +19,12 @@ Docker checks 1 minute 53 seconds.
    run container tests, persist a mock sample through a writable output mount, reopen it
    through a read-only mount, and report the image size in bytes.
 3. **AI tests and forecast API image:** after the Python job succeeds, install CPU-only
-   PyTorch and pinned API dependencies, run 30 AI/API tests, create an explicitly synthetic
+   PyTorch and pinned API dependencies, run 31 AI/API tests, create an explicitly synthetic
    one-pair fixture with no future target file, build `Dockerfile.ai`, start the API with
    read-only inputs, exercise the dashboard, pair listing, health/model/predict and visualization
    endpoints over HTTP, verify both PNG dimensions and target-free behavior, reopen the NPZ/JSON
-   output, scan the image for excluded data/model files, check dependencies and record image size.
+   output, scan the image for excluded data/model files, check dependencies, exercise the
+   one-command interactive Compose demo and record image size.
 
 The runner is `ubuntu-24.04` (standard x64 GitHub-hosted runner). The first CI run checked
 Linux AMD64 in addition to the Linux ARM64 environment already tested locally. Each job has
@@ -52,6 +53,6 @@ References: [GitHub Actions quickstart](https://docs.github.com/en/actions/get-s
 The extended workflow and synthetic AI fixture were parsed and simulated locally on ARM64:
 fixture generation, healthy API container, dashboard/API endpoints, prediction reopen and static
 image scan passed. The forecasting extension currently has 67 preprocessing/timing tests and
-30 dedicated AI/API tests passing locally. The same contract passed on GitHub's Linux AMD64
+31 dedicated AI/API tests passing locally. The same contract is checked on GitHub's Linux AMD64
 runner in run 40157818399. This verifies portability of the synthetic workflow, not model
 skill on unseen meteorological observations or real-time production readiness.

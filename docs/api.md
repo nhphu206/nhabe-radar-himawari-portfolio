@@ -53,6 +53,21 @@ Open <http://127.0.0.1:8000/demo> for the visual interface or
 **Run forecast**. If that pair was already generated, the dashboard safely reopens and
 validates the existing NPZ/JSON artifacts rather than overwriting them.
 
+## One-command synthetic visual demo
+
+Reviewers without the private observations or trained checkpoint can exercise the complete UI:
+
+```bash
+docker compose -f compose.demo.yaml up --build
+```
+
+The service is available at <http://127.0.0.1:8000/demo>. The Compose configuration uses only
+temporary in-container files. It generates deterministic synthetic radar, Himawari and future
+target arrays together with an untrained random-weight checkpoint. `/model-info` exposes
+`trained_checkpoint=false` and `artifact_kind=SYNTHETIC_INTERACTIVE_DEMO_FIXTURE`; the dashboard
+shows a matching warning. This path demonstrates integration contracts, not meteorological skill.
+It neither reads nor mounts the private research dataset.
+
 Example request:
 
 ```bash
@@ -106,11 +121,11 @@ inference view did not read the historical target; target and error were loaded 
 explicit evaluation view.
 
 The ARM64 AI image built successfully with PyTorch `2.14.1+cpu` and no CUDA runtime. Docker
-reported 278,795,710 bytes (approximately 266 MiB), and `pip check` reported no broken
+reported 278,803,895 bytes (approximately 266 MiB), and `pip check` reported no broken
 requirements. Compose reached `healthy`; a real mounted-data prediction was reopened on the
 host with shape 256 × 256, float32 values, 7,452 valid pixels and matching NPZ hash. A static
 image scan found no `.pt`, `.pth`, `.npz` or raw-radar file under `/app`. The test container and
 network were removed afterward. GitHub Actions also exercises the synthetic dashboard/API
-contract on Linux AMD64: 30 AI/API tests, image build, dashboard shell, pair listing,
+contract on Linux AMD64: 31 AI/API tests, image build, dashboard shell, pair listing,
 current/prediction PNG dimensions, target-free inference, prediction reopen, image-content scan
 and cleanup.

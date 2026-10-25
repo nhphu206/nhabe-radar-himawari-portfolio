@@ -1,0 +1,31 @@
+name: nhabe-forecast-demo
+
+services:
+  demo:
+    image: ${DEMO_IMAGE:-nhabe-forecast-demo:dev}
+    build:
+      context: .
+      dockerfile: Dockerfile.ai
+    read_only: true
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8000}:8000"
+    tmpfs:
+      - /tmp
+      - /demo-fixture:uid=10002,gid=10002,mode=0755
+      - /app/output:uid=10002,gid=10002,mode=0755
+    environment:
+      NHABE_DATA_ROOT: /demo-fixture
+      NHABE_FORECAST_MANIFEST: /demo-fixture/forecast_pairs.csv
+      NHABE_NORMALIZATION: /demo-fixture/normalization.json
+      NHABE_MODEL_CONFIG: /app/configs/model.yaml
+      NHABE_CHECKPOINT: /demo-fixture/best_model.pt
+      NHABE_INFERENCE_OUTPUT: /app/output
+      NHABE_DEVICE: cpu
+    command:
+      - /bin/sh
+      - -c
+      - >-
+        python /app/scripts/20_create_synthetic_api_fixture.py
+        --output /demo-fixture --include-historical-target &&
+        exec uvicorn nhabe_forecasting.api:app
+        --host 0.0.0.0 --port 8000 --workers 1

@@ -199,7 +199,7 @@ DASHBOARD_HTML = """<!doctype html>
   <p>Interactive visualization of one audited historical reflectivity forecast.</p>
 </header>
 <main>
-  <div class="notice"><strong>Research demonstration.</strong> Not an operational weather service. Display ranges are visualization choices, not processing thresholds.</div>
+  <div id="notice" class="notice"><strong>Research demonstration.</strong> Not an operational weather service. Display ranges are visualization choices, not processing thresholds.</div>
   <section class="panel">
     <h2>1. Service and model</h2>
     <div id="status" class="status-grid"><div class="metric"><span>Status</span><strong>Loading…</strong></div></div>
@@ -241,7 +241,8 @@ async function loadPage() {
     const [health, model, pairs] = await Promise.all([
       jsonFetch('/health'), jsonFetch('/model-info'), jsonFetch('/pairs?split=validation&limit=50')
     ]);
-    byId('status').innerHTML = metric('Service', health.status) + metric('Model', model.input_mode) + metric('Checkpoint epoch', model.checkpoint_epoch) + metric('Device', model.device) + metric('Audited pairs', model.available_pairs);
+    byId('status').innerHTML = metric('Service', health.status) + metric('Model', model.input_mode) + metric('Checkpoint epoch', model.checkpoint_epoch) + metric('Trained checkpoint', model.trained_checkpoint) + metric('Artifact kind', model.artifact_kind) + metric('Device', model.device) + metric('Audited pairs', model.available_pairs);
+    if (!model.trained_checkpoint) byId('notice').innerHTML = '<strong>Synthetic portfolio demo.</strong> Inputs are generated arrays and the checkpoint has untrained random weights. These images demonstrate the software contract only, not forecast skill.';
     byId('pair').innerHTML = pairs.pairs.map(item => `<option value="${escapeHtml(item.pair_id)}">${escapeHtml(item.input_time_utc)} → ${escapeHtml(item.target_time_utc)}</option>`).join('');
   } catch (error) { byId('message').textContent = error.message; byId('message').className = 'message bad'; }
 }

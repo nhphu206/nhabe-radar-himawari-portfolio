@@ -203,6 +203,20 @@ evaluation view loads the later observation and absolute error through separate 
 the interface preserves the causal boundary instead of quietly leaking the answer into
 inference.
 
+### One-command visual demo
+
+No observation data or trained checkpoint is required for this software-contract demo:
+
+```bash
+docker compose -f compose.demo.yaml up --build
+```
+
+Then open <http://127.0.0.1:8000/demo>. The container generates deterministic synthetic radar,
+Himawari and historical-target arrays plus an **untrained random-weight checkpoint** in temporary
+memory. The dashboard labels that state explicitly. It demonstrates API, validation, masking and
+visualization behavior; it does not demonstrate forecast skill. Stop it with `Ctrl+C`, followed by
+`docker compose -f compose.demo.yaml down`.
+
 The API and CPU-only AI container are portfolio demonstrations without authentication,
 real-time ingestion or operational deployment. See [inference](docs/inference.md) and
 [API contract](docs/api.md).
@@ -210,7 +224,7 @@ real-time ingestion or operational deployment. See [inference](docs/inference.md
 ## Testing and CI
 
 - **67** preprocessing, timing and data-contract tests;
-- **30** PyTorch dataset, metric, model, training, evaluation and API tests;
+- **31** PyTorch dataset, metric, model, training, evaluation, API and demo tests;
 - synthetic NPZ/JSON round-trip checks;
 - preprocessing and CPU-only AI Docker builds;
 - container dashboard/API smoke test, PNG validation and image-content scan;

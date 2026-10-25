@@ -126,9 +126,17 @@ class MultimodalInferenceEngine:
 
     def model_info(self) -> dict[str, Any]:
         """Return public immutable model identity without local filesystem paths."""
+        validation = self.checkpoint.get("validation", {})
+        provenance = self.checkpoint.get("provenance", {})
         return {
             "input_mode": "multimodal",
             "checkpoint_epoch": int(self.checkpoint["epoch"]),
+            "trained_checkpoint": not bool(
+                validation.get("synthetic_weights_not_trained", False)
+            ),
+            "artifact_kind": provenance.get(
+                "sample_kind", "AUDITED_RESEARCH_ARTIFACT"
+            ),
             "checkpoint_sha256": file_sha256(self.checkpoint_path),
             "manifest_sha256": file_sha256(self.manifest_path),
             "normalization_sha256": file_sha256(self.normalization_path),

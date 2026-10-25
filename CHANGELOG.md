@@ -8,6 +8,7 @@ This project records research milestones rather than claiming production readine
 - Kept target-free inference separate from the optional historical observation/error view.
 - Added safe pair listing, existing-prediction metadata and validated 256 × 256 PNG endpoints.
 - Extended tests and container CI checks for the dashboard and visualization contract.
+- Added a one-command Compose demo with explicit synthetic-data and untrained-weight labels.
 
 ## v1.0.0 — End-to-end research pipeline
 

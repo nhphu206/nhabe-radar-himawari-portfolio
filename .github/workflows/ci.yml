@@ -214,11 +214,14 @@ jobs:
               "CI_SYNTHETIC_PAIR",
           )
           response = json.loads(Path("output/ci-ai-response.json").read_text())
+          model = json.loads(Path("output/ci-ai-model.json").read_text())
           existing = json.loads(
               Path("output/ci-ai-existing-prediction.json").read_text()
           )
           pairs = json.loads(Path("output/ci-ai-pairs.json").read_text())
           assert metadata["future_target_array_read"] is False
+          assert model["trained_checkpoint"] is False
+          assert model["artifact_kind"] == "SYNTHETIC_API_CONTRACT_FIXTURE"
           assert response["npz_sha256"] == metadata["npz_sha256"]
           assert existing["npz_sha256"] == metadata["npz_sha256"]
           assert pairs["count"] == 1
@@ -243,10 +246,58 @@ jobs:
           docker run --rm --entrypoint python nhabe-forecast-api:ci -m pip check
           docker image inspect nhabe-forecast-api:ci --format '{{.Size}}'
 
+      - name: Exercise one-command synthetic dashboard
+        env:
+          DEMO_IMAGE: nhabe-forecast-api:ci
+          DEMO_PORT: "8001"
+        run: |
+          docker compose -f compose.demo.yaml config --quiet
+          docker compose -f compose.demo.yaml up --detach --no-build
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8001/health > output/ci-demo-health.json; then
+              break
+            fi
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:8001/demo > output/ci-demo.html
+          curl --fail --silent http://127.0.0.1:8001/model-info > output/ci-demo-model.json
+          curl --fail --silent --request POST http://127.0.0.1:8001/predict \
+            --header 'Content-Type: application/json' \
+            --data '{"pair_id":"CI_SYNTHETIC_PAIR"}' > output/ci-demo-response.json
+          curl --fail --silent \
+            http://127.0.0.1:8001/visualization/CI_SYNTHETIC_PAIR/target.png \
+            > output/ci-demo-target.png
+          curl --fail --silent \
+            http://127.0.0.1:8001/visualization/CI_SYNTHETIC_PAIR/error.png \
+            > output/ci-demo-error.png
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import struct
+
+          model = json.loads(Path("output/ci-demo-model.json").read_text())
+          response = json.loads(Path("output/ci-demo-response.json").read_text())
+          assert model["trained_checkpoint"] is False
+          assert model["artifact_kind"] == "SYNTHETIC_INTERACTIVE_DEMO_FIXTURE"
+          assert response["future_target_array_read"] is False
+          assert "Synthetic portfolio demo" in Path("output/ci-demo.html").read_text()
+          for name in ("target", "error"):
+              image = Path(f"output/ci-demo-{name}.png").read_bytes()
+              assert image.startswith(b"\x89PNG\r\n\x1a\n")
+              assert struct.unpack(">II", image[16:24]) == (256, 256)
+          print("One-command synthetic dashboard: PASS")
+          PY
+
       - name: Show API logs on failure
         if: failure()
-        run: docker logs nhabe-forecast-api-ci || true
+        run: |
+          docker logs nhabe-forecast-api-ci || true
+          DEMO_IMAGE=nhabe-forecast-api:ci DEMO_PORT=8001 \
+            docker compose -f compose.demo.yaml logs || true
 
       - name: Stop API container
         if: always()
-        run: docker rm --force nhabe-forecast-api-ci || true
+        run: |
+          docker rm --force nhabe-forecast-api-ci || true
+          DEMO_IMAGE=nhabe-forecast-api:ci DEMO_PORT=8001 \
+            docker compose -f compose.demo.yaml down --volumes || true
