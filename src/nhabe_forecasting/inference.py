@@ -138,6 +138,21 @@ class MultimodalInferenceEngine:
             "output_schema": INFERENCE_SCHEMA,
         }
 
+    def pair_row(self, pair_id: str) -> dict[str, str]:
+        """Return one validated manifest row without reading any source array."""
+        if pair_id not in self.pair_locations:
+            raise KeyError(pair_id)
+        split, index = self.pair_locations[pair_id]
+        return dict(self.datasets[split].rows[index])
+
+    def available_pair_rows(self, split: str, limit: int) -> list[dict[str, str]]:
+        """Return a bounded chronological list for the local dashboard selector."""
+        if split not in self.datasets:
+            raise ValueError("split is not available in the audited manifest")
+        if not 1 <= limit <= 200:
+            raise ValueError("pair list limit must be between 1 and 200")
+        return [dict(row) for row in self.datasets[split].rows[:limit]]
+
     @torch.no_grad()
     def predict(self, pair_id: str, output_dir: Path) -> dict[str, Any]:
         """Predict one future field without reading its future target array."""

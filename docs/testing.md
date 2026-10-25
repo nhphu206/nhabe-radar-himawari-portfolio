@@ -17,9 +17,9 @@ evaluator and inference tests pass in the dedicated PyTorch environment on Octob
 in `tests_ai/` so the preprocessing-only Docker image and release suite do not silently
 acquire the much larger PyTorch dependency.
 
-GitHub Actions run 40158067267 passed all three Linux AMD64 jobs: the 67-test Python workflow,
-the preprocessing image checks, and the 30-test AI/API workflow with a target-free synthetic
-fixture, HTTP prediction roundtrip and image-content scan.
+The three Linux AMD64 jobs cover the 67-test Python workflow, preprocessing image checks, and
+the 30-test AI/API workflow with a target-free synthetic fixture, HTTP prediction roundtrip,
+dashboard/PNG checks and image-content scan.
 
 ```bash
 python -m unittest discover -s tests -v
@@ -42,7 +42,7 @@ python -m unittest discover -s tests -v
 | `tests_ai/test_unet.py` | Repository model config, two input channel modes, output shape, unrestricted regression, masked backward gradients and invalid geometry |
 | `tests_ai/test_training.py` | Optimizer updates, overfit gate, validation mask/units, safe checkpoint roundtrip and fixed training configuration |
 | `tests_ai/test_final_evaluation.py` | Frozen checkpoint/config fingerprints, identical method ordering, locked-test summary and artifact integrity |
-| `tests_ai/test_inference.py` | Target-free input construction, multimodal checkpoint enforcement, NPZ/JSON roundtrip, CLI portability and FastAPI success/error contracts |
+| `tests_ai/test_inference.py` | Target-free input construction, multimodal checkpoint enforcement, NPZ/JSON roundtrip, CLI portability, dashboard shell, 256 × 256 PNG layers, explicit historical-target access and FastAPI success/error contracts |
 
 Negative tests intentionally supply invalid data. A test passes when the code rejects that
 data with the expected error, not when invalid data is accepted. The timing tests distinguish

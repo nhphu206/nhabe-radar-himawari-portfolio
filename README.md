@@ -196,6 +196,13 @@ float32 dBZ and an explicit boolean mask, then reopens the NPZ/JSON product befo
 PASS. A minimal FastAPI wrapper exposes health, immutable model identity and prediction by an
 audited `pair_id`; it does not accept arbitrary uploaded paths or arrays.
 
+The same service includes an interactive dashboard at `/demo`. It lets a reviewer select an
+audited validation pair, run the frozen model and compare current radar with the ten-minute
+prediction. The default view never reads the future target. An explicitly enabled historical
+evaluation view loads the later observation and absolute error through separate endpoints, so
+the interface preserves the causal boundary instead of quietly leaking the answer into
+inference.
+
 The API and CPU-only AI container are portfolio demonstrations without authentication,
 real-time ingestion or operational deployment. See [inference](docs/inference.md) and
 [API contract](docs/api.md).
@@ -206,7 +213,7 @@ real-time ingestion or operational deployment. See [inference](docs/inference.md
 - **30** PyTorch dataset, metric, model, training, evaluation and API tests;
 - synthetic NPZ/JSON round-trip checks;
 - preprocessing and CPU-only AI Docker builds;
-- container API smoke test and image-content scan;
+- container dashboard/API smoke test, PNG validation and image-content scan;
 - GitHub-hosted Linux AMD64 CI on pushes and pull requests.
 
 The latest public main-branch workflow is available under

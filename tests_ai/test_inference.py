@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
+import struct
 import subprocess
 import sys
 import tempfile
@@ -138,6 +139,14 @@ class InferenceTests(unittest.TestCase):
             checkpoint_path=self.checkpoint, output_root=self.root / "api-output", device="cpu",
         )
         with TestClient(create_app(settings)) as client:
+            demo = client.get("/demo")
+            self.assertEqual(demo.status_code, 200)
+            self.assertIn("Nha Be Radar–Himawari Forecast Demo", demo.text)
+            self.assertNotIn(str(self.root), demo.text)
+            root = client.get("/")
+            self.assertEqual(root.status_code, 200)
+            self.assertIn("Run forecast", root.text)
+
             health = client.get("/health")
             self.assertEqual(health.status_code, 200)
             self.assertEqual(health.json()["status"], "READY")
@@ -145,6 +154,17 @@ class InferenceTests(unittest.TestCase):
             self.assertEqual(info.status_code, 200)
             self.assertEqual(info.json()["available_pairs"], 1)
             self.assertNotIn(str(self.root), info.text)
+
+            pairs = client.get("/pairs?split=validation&limit=50")
+            self.assertEqual(pairs.status_code, 200)
+            self.assertEqual(pairs.json()["count"], 1)
+            self.assertEqual(pairs.json()["pairs"][0]["pair_id"], "pair-1")
+            self.assertNotIn("npz_path", pairs.text)
+            current = client.get("/visualization/pair-1/current.png")
+            self._assert_png(current)
+            self.assertEqual(current.headers["x-nhabe-historical-target-read"], "false")
+            missing_prediction = client.get("/visualization/pair-1/prediction.png")
+            self.assertEqual(missing_prediction.status_code, 404)
 
             prediction = client.post("/predict", json={"pair_id": "pair-1"})
             self.assertEqual(prediction.status_code, 200, prediction.text)
@@ -154,12 +174,43 @@ class InferenceTests(unittest.TestCase):
             self.assertFalse(body["npz_artifact"].startswith("/"))
             self.assertTrue((settings.output_root / body["npz_artifact"]).is_file())
 
+            existing = client.get("/predictions/pair-1")
+            self.assertEqual(existing.status_code, 200)
+            self.assertFalse(existing.json()["future_target_array_read"])
+            self.assertNotIn(str(self.root), existing.text)
+            predicted_image = client.get("/visualization/pair-1/prediction.png")
+            self._assert_png(predicted_image)
+            self.assertEqual(
+                predicted_image.headers["x-nhabe-historical-target-read"], "false",
+            )
+
+            missing_target = client.get("/visualization/pair-1/target.png")
+            self.assertEqual(missing_target.status_code, 404)
+            target = np.full((256, 256), 15, dtype=np.float32)
+            target[0, 0] = np.nan
+            self._write_radar(self.root / "future-target-does-not-exist.npz", target)
+            for layer in ("target", "error"):
+                image = client.get(f"/visualization/pair-1/{layer}.png")
+                self._assert_png(image)
+                self.assertEqual(image.headers["x-nhabe-historical-target-read"], "true")
+
             duplicate = client.post("/predict", json={"pair_id": "pair-1"})
             self.assertEqual(duplicate.status_code, 409)
             unknown = client.post("/predict", json={"pair_id": "missing"})
             self.assertEqual(unknown.status_code, 404)
             extra = client.post("/predict", json={"pair_id": "pair-1", "path": "/tmp"})
             self.assertEqual(extra.status_code, 422)
+            unknown_image = client.get("/visualization/missing/current.png")
+            self.assertEqual(unknown_image.status_code, 404)
+            invalid_layer = client.get("/visualization/pair-1/not-a-layer.png")
+            self.assertEqual(invalid_layer.status_code, 422)
+
+    def _assert_png(self, response) -> None:
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.headers["content-type"], "image/png")
+        self.assertTrue(response.content.startswith(b"\x89PNG\r\n\x1a\n"))
+        width, height = struct.unpack(">II", response.content[16:24])
+        self.assertEqual((width, height), (256, 256))
 
 
 if __name__ == "__main__":

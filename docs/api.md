@@ -8,14 +8,25 @@ submit filesystem paths, upload arbitrary arrays or change model/scientific para
 
 | Method and path | Purpose |
 | --- | --- |
+| `GET /demo` | Open the interactive local forecast dashboard |
 | `GET /health` | Confirm the model is loaded and the service is ready |
 | `GET /model-info` | Return checkpoint/config hashes, epoch, device and pair count |
+| `GET /pairs` | List safe identifiers and timestamps from one audited split |
 | `POST /predict` | Generate one audited NPZ/JSON prediction for `{"pair_id": "..."}` |
+| `GET /predictions/{pair_id}` | Return validated metadata for an existing prediction |
+| `GET /visualization/{pair_id}/{layer}.png` | Render `current`, `prediction`, `target` or `error` as a 256 × 256 PNG |
 
 The API returns relative artifact identifiers, not server filesystem paths. Unknown pairs
 return HTTP 404, an existing output returns 409, and invalid or extra request fields return
 422. A process lock serializes inference, and Uvicorn runs one worker so the checkpoint has one
 in-memory copy. The model is loaded and fingerprinted during application startup.
+
+The browser dashboard is served by the same FastAPI process and adds no frontend framework or
+database. Its default inference view reads the current radar/Himawari inputs, runs the frozen
+model and displays current reflectivity beside the ten-minute prediction. It does **not** open
+the future target. Selecting **Historical evaluation view** makes separate HTTP requests for the
+future observation and absolute-error image after inference. The response header
+`X-NHABE-Historical-Target-Read` records that distinction for every rendered layer.
 
 ## Run locally
 
@@ -36,6 +47,11 @@ export NHABE_DEVICE=cpu
 ./.venv/bin/uvicorn nhabe_forecasting.api:app \
   --app-dir src --host 127.0.0.1 --port 8000 --workers 1
 ```
+
+Open <http://127.0.0.1:8000/demo> for the visual interface or
+<http://127.0.0.1:8000/docs> for Swagger UI. Choose an audited validation pair and press
+**Run forecast**. If that pair was already generated, the dashboard safely reopens and
+validates the existing NPZ/JSON artifacts rather than overwriting them.
 
 Example request:
 
@@ -81,16 +97,20 @@ array. It does not prove real-time data availability or an operational ten-minut
 
 ## Verified local and container checks
 
-On October 25, 2026, the local Uvicorn service returned HTTP 200 for `/health`, `/model-info`
-and a real validation `/predict` request. The model-info response matched checkpoint epoch 23,
+On October 25, 2026, the local Uvicorn service returned HTTP 200 for `/health`, `/model-info`,
+`/demo`, `/pairs`, the four visualization layers and a real validation `/predict` request. The
+model-info response matched checkpoint epoch 23,
 all frozen fingerprints and 822 audited pairs. The response exposed relative artifact names and
-reported `future_target_array_read=false`.
+reported `future_target_array_read=false`. The current and prediction layers confirmed that the
+inference view did not read the historical target; target and error were loaded only through the
+explicit evaluation view.
 
 The ARM64 AI image built successfully with PyTorch `2.14.1+cpu` and no CUDA runtime. Docker
-reported 278,781,609 bytes (approximately 266 MiB), and `pip check` reported no broken
+reported 278,795,710 bytes (approximately 266 MiB), and `pip check` reported no broken
 requirements. Compose reached `healthy`; a real mounted-data prediction was reopened on the
 host with shape 256 × 256, float32 values, 7,452 valid pixels and matching NPZ hash. A static
 image scan found no `.pt`, `.pth`, `.npz` or raw-radar file under `/app`. The test container and
-network were removed afterward. GitHub Actions run 40158067267 repeated the synthetic API
-contract successfully on Linux AMD64: 30 AI/API tests, image build, all three endpoints,
-prediction reopen, image-content scan and cleanup passed.
+network were removed afterward. GitHub Actions also exercises the synthetic dashboard/API
+contract on Linux AMD64: 30 AI/API tests, image build, dashboard shell, pair listing,
+current/prediction PNG dimensions, target-free inference, prediction reopen, image-content scan
+and cleanup.

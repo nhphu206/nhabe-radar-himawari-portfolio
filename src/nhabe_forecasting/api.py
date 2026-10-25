@@ -7,11 +7,19 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import threading
-from typing import Any
+from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from .dashboard import (
+    dashboard_html,
+    prediction_metadata,
+    render_png,
+    serialize_pair,
+    visualization_array,
+)
 from .inference import MultimodalInferenceEngine
 
 
@@ -99,6 +107,14 @@ def create_app(settings: APISettings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    @application.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        return RedirectResponse(url="/demo")
+
+    @application.get("/demo", response_class=HTMLResponse, include_in_schema=False)
+    def demo() -> str:
+        return dashboard_html()
+
     @application.get("/health")
     def health(request: Request) -> dict[str, Any]:
         info = request.app.state.engine.model_info()
@@ -112,6 +128,60 @@ def create_app(settings: APISettings | None = None) -> FastAPI:
     @application.get("/model-info")
     def model_info(request: Request) -> dict[str, Any]:
         return request.app.state.engine.model_info()
+
+    @application.get("/pairs")
+    def pairs(
+        request: Request,
+        split: Literal["train", "validation", "test"] = "validation",
+        limit: int = Query(default=50, ge=1, le=200),
+    ) -> dict[str, Any]:
+        engine: MultimodalInferenceEngine = request.app.state.engine
+        rows = engine.available_pair_rows(split, limit)
+        return {"split": split, "count": len(rows), "pairs": [serialize_pair(row) for row in rows]}
+
+    @application.get("/predictions/{pair_id}")
+    def existing_prediction(pair_id: str, request: Request) -> dict[str, Any]:
+        engine: MultimodalInferenceEngine = request.app.state.engine
+        try:
+            engine.pair_row(pair_id)
+            return prediction_metadata(request.app.state.settings.output_root, pair_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="pair_id is not in the audited manifest") from error
+        except FileNotFoundError as error:
+            raise HTTPException(status_code=404, detail="prediction artifact does not exist") from error
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @application.get("/visualization/{pair_id}/{layer}.png", response_class=Response)
+    def visualization(
+        pair_id: str,
+        layer: Literal["current", "prediction", "target", "error"],
+        request: Request,
+    ) -> Response:
+        engine: MultimodalInferenceEngine = request.app.state.engine
+        try:
+            row = engine.pair_row(pair_id)
+            values, mask, vmin, vmax, stops = visualization_array(
+                data_root=request.app.state.settings.data_root,
+                output_root=request.app.state.settings.output_root,
+                row=row,
+                layer=layer,
+            )
+            image = render_png(values, mask, vmin, vmax, stops)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="pair_id is not in the audited manifest") from error
+        except FileNotFoundError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return Response(
+            content=image,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "no-store",
+                "X-NHABE-Historical-Target-Read": str(layer in {"target", "error"}).lower(),
+            },
+        )
 
     @application.post("/predict", response_model=PredictResponse)
     def predict(payload: PredictRequest, request: Request) -> PredictResponse:

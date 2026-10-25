@@ -2,6 +2,13 @@
 
 This project records research milestones rather than claiming production readiness.
 
+## Unreleased
+
+- Added a dependency-free interactive FastAPI dashboard for audited validation pairs.
+- Kept target-free inference separate from the optional historical observation/error view.
+- Added safe pair listing, existing-prediction metadata and validated 256 × 256 PNG endpoints.
+- Extended tests and container CI checks for the dashboard and visualization contract.
+
 ## v1.0.0 — End-to-end research pipeline
 
 - Built leakage-aware, observation-timed forecast pairs for a fixed ten-minute radar target.

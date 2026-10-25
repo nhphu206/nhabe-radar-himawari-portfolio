@@ -181,13 +181,27 @@ jobs:
 
       - name: Exercise HTTP API and reopen prediction
         run: |
+          curl --fail --silent http://127.0.0.1:8000/demo > output/ci-ai-demo.html
           curl --fail --silent http://127.0.0.1:8000/model-info > output/ci-ai-model.json
+          curl --fail --silent 'http://127.0.0.1:8000/pairs?split=validation&limit=1' > output/ci-ai-pairs.json
+          curl --fail --silent \
+            http://127.0.0.1:8000/visualization/CI_SYNTHETIC_PAIR/current.png \
+            > output/ci-ai-current.png
           curl --fail --silent --request POST http://127.0.0.1:8000/predict \
             --header 'Content-Type: application/json' \
             --data '{"pair_id":"CI_SYNTHETIC_PAIR"}' > output/ci-ai-response.json
+          curl --fail --silent \
+            http://127.0.0.1:8000/predictions/CI_SYNTHETIC_PAIR \
+            > output/ci-ai-existing-prediction.json
+          curl --fail --silent \
+            http://127.0.0.1:8000/visualization/CI_SYNTHETIC_PAIR/prediction.png \
+            > output/ci-ai-prediction.png
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            http://127.0.0.1:8000/visualization/CI_SYNTHETIC_PAIR/target.png)" = "404"
           python - <<'PY'
           import json
           from pathlib import Path
+          import struct
           import sys
 
           sys.path.insert(0, str(Path("src").resolve()))
@@ -200,9 +214,23 @@ jobs:
               "CI_SYNTHETIC_PAIR",
           )
           response = json.loads(Path("output/ci-ai-response.json").read_text())
+          existing = json.loads(
+              Path("output/ci-ai-existing-prediction.json").read_text()
+          )
+          pairs = json.loads(Path("output/ci-ai-pairs.json").read_text())
           assert metadata["future_target_array_read"] is False
           assert response["npz_sha256"] == metadata["npz_sha256"]
-          print("Container API prediction reopened: PASS")
+          assert existing["npz_sha256"] == metadata["npz_sha256"]
+          assert pairs["count"] == 1
+          assert pairs["pairs"][0]["pair_id"] == "CI_SYNTHETIC_PAIR"
+          assert "Nha Be Radar–Himawari Forecast Demo" in Path(
+              "output/ci-ai-demo.html"
+          ).read_text()
+          for name in ("current", "prediction"):
+              image = Path(f"output/ci-ai-{name}.png").read_bytes()
+              assert image.startswith(b"\x89PNG\r\n\x1a\n")
+              assert struct.unpack(">II", image[16:24]) == (256, 256)
+          print("Container dashboard and API prediction reopened: PASS")
           PY
 
       - name: Confirm image excludes observations and checkpoints
