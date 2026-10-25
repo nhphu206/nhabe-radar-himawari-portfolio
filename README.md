@@ -299,6 +299,11 @@ reopens the NPZ/JSON product before returning PASS. See the
 [single-sample inference contract](docs/inference.md). This is offline research inference,
 not a live API or operational forecast service.
 
+Three deterministic first/middle/last validation cases are also visualized as current radar,
+prediction, target and absolute error. Their display ranges are not processing thresholds, and
+the examples do not replace full-split metrics. See the
+[qualitative validation notes](docs/qualitative_results.md).
+
 ## License
 
 Project-authored code and accompanying documentation are licensed under

@@ -465,3 +465,14 @@ Mẫu validation `NHB250822004007_RAWNDW4__to__NHB250822005007_RAWNDWB` chạy C
 7.292 pixel hợp lệ (11,1267%), forward khoảng 0,079 giây; NPZ/JSON mở lại đúng hash, shape,
 dtype và NaN–mask. Đây là offline inference từ manifest đã chuẩn bị, chưa phải API hay hệ thống
 nhận dữ liệu thời gian thực. Xem [inference contract](inference.md).
+
+## 18. Day 22 — xem định tính mà không cherry-pick (25/10/2026)
+
+Chọn cố định validation index 0, 70 và 140, tương ứng đầu, giữa và cuối theo thời gian. Quy
+tắc được chốt trước khi xem hình nên không chọn thủ công trường hợp đẹp. Prediction được tạo
+trước mà không đọc target; bước visualization sau đó mới đọc target để tính sai số và vẽ.
+
+Ba RMSE lần lượt là 10,214; 5,095 và 3,622 dBZ trên common-valid mask. Sự khác nhau cho thấy
+độ khó từng tình huống không đồng nhất. Chỉ ba mẫu không đại diện cho phân phối toàn validation,
+vì vậy kết luận định lượng vẫn phải dựa trên metric global của 141 validation và 173 test pairs.
+Dải màu -10–60 dBZ và error 0–30 dBZ chỉ là display range, không threshold dữ liệu.
