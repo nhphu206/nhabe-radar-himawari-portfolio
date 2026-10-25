@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nhabe-radar-himawari"
-version = "0.1.0"
-description = "Reproducible preprocessing for Nha Be weather radar and Himawari-9"
+version = "1.0.0"
+description = "Reproducible radar-Himawari preprocessing and ten-minute reflectivity forecasting"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{name = "Nguyen Hoai Phu"}]

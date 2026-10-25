@@ -1,5 +1,7 @@
 # Nha Be Radar–Himawari Forecasting Pipeline
 
+[![Radar-Himawari CI](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml/badge.svg)](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/workflows/ci.yml)
+
 A research project that turns Nha Be weather radar and Himawari-9 observations into spatially
 aligned arrays and evaluates a controlled ten-minute reflectivity forecasting experiment.
 The research scope is August 2025; this is an offline portfolio study, not a production service.
@@ -43,6 +45,19 @@ Small historical evidence snapshots are in [docs/validation](docs/validation/REA
 These results describe the local research dataset, not a production deployment.
 Observation files and generated arrays are not distributed in this repository.
 
+The frozen forecasting experiment uses 822 causally screened pairs split by time into
+508 training, 141 validation and 173 locked-test pairs. On the locked test set:
+
+| Method | MAE (dBZ) | RMSE (dBZ) |
+| --- | ---: | ---: |
+| Persistence | 5.011 | 7.408 |
+| Radar-only Small U-Net | 4.235 | 5.956 |
+| Radar + Himawari Small U-Net | **4.215** | **5.904** |
+
+The multimodal model reduced RMSE by 20.30% relative to persistence and 0.88% relative to
+the controlled radar-only model. These are one-seed, one-station, one-month results; they do
+not establish general superiority or operational forecast skill.
+
 ## Scientific configuration
 
 The unchanged research configuration is [configs/pipeline.yaml](configs/pipeline.yaml).
@@ -70,7 +85,8 @@ examples/                 Synthetic sample instructions
 docs/validation/          Small research evidence snapshots
 ```
 
-The stack includes Python, NumPy, Py-ART, SatPy, Pyresample, PyYAML, and aiohttp.
+The stack includes Python, NumPy, Py-ART, SatPy, Pyresample, PyTorch, FastAPI, Docker,
+Docker Compose and GitHub Actions.
 This repository starts with a fresh Git history containing only the selected project files.
 
 ## Run locally
@@ -97,13 +113,11 @@ are defined in `pyproject.toml`; editable installation remains to be verified.
 python -m unittest discover -s tests -v
 ```
 
-See [test coverage](docs/testing.md). The expanded suite has 21 test methods for configuration,
-A/B metadata, timing boundaries, NaN/masks, serialization, and CLI execution from another
-directory. All 21 passed locally and in the rebuilt ARM64 container, as confirmed by the
-project owner. The expanded suite's hosted CI also passed both Python and Docker jobs
-in [run #3](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38147133453),
-as confirmed by the project owner's screenshot.
-Tests use synthetic arrays and temporary files.
+See [test coverage](docs/testing.md). The current suite contains 67 preprocessing/timing tests
+and 30 dedicated AI/API tests. Both suites pass locally; the synthetic preprocessing and
+forecast API workflows also pass on GitHub-hosted Linux AMD64 in
+[run 40158067267](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/40158067267).
+Tests use synthetic arrays and temporary files rather than distributed observations.
 
 ## Run with Docker
 
@@ -199,24 +213,23 @@ outcomes; the dataset index maps sample identifiers to NPZ/JSON paths.
 cycle must remain in the same train/validation/test partition. The five satellite bands are
 stored in the configured channel order. Grid spacing is not the native sensor resolution.
 
-## Limitations and next engineering steps
+## Limitations and future work
 
-- Docker and Compose synthetic-contract checks passed locally on ARM64. CI passed Python
-  and Docker checks on Linux AMD64. Real-data preprocessing inside Docker, the real-data
-  Compose overlay remain to be verified. Expanded entrypoint/error tests passed locally
-  and in the ARM64 container; the expanded suite's hosted CI also passed both jobs.
+- Docker and Compose synthetic-contract checks passed locally on ARM64. CI passed Python,
+  preprocessing Docker and AI/API checks on Linux AMD64. Real-data preprocessing inside
+  Docker and the real-data Compose overlay remain to be verified.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
-- No comprehensive radar quality-control chain, multi-month replication, uncertainty estimate
-  or production deployment has been completed. This is reflectivity forecasting, not lightning
-  or rainfall prediction.
+- No comprehensive radar quality-control chain, multi-month or multi-seed replication,
+  uncertainty estimate or production deployment has been completed. This is reflectivity
+  forecasting, not lightning or rainfall prediction.
 - Raw-data redistribution is not included. A complete bundled-component license and
   corresponding-source review is required before distributing built container images.
 
-Future model work requires agreed labels and lead times, temporal/group-aware splits, and
-normalization calculated only from training data.
+Future research should repeat the frozen protocol across additional months and seeds, quantify
+uncertainty, test stronger baselines and assess meteorological event-specific performance.
 
-## Forecasting extension (in progress)
+## Forecasting, evaluation and inference
 
 The task is **next-volume reflectivity forecasting with exact 10-minute radar midpoint
 separation**, not rainfall or lightning prediction. The A-only index contains 842 exact
@@ -248,8 +261,9 @@ preview in a separate output directory. See [manifest schema](docs/forecasting_m
 [pair configuration](configs/forecasting.yaml). The working extension has **67 locally
 passing preprocessing/timing tests plus 30 dedicated PyTorch dataset/metric/model/training,
 evaluation and inference tests**. AI Docker/API checks pass locally and on hosted Linux AMD64 CI.
-Official training and one-time locked-test evaluation have completed locally. This extension is not part
-of release `v0.1-data-pipeline`.
+Official training and one-time locked-test evaluation have completed locally. The preprocessing-only
+milestone remains available as release `v0.1-data-pipeline`; the end-to-end research milestone is
+documented in [CHANGELOG.md](CHANGELOG.md).
 
 Train-only normalization is fitted from 508 unique radar input sources and 508 unique
 satellite input sources, using finite masked pixels, per-band satellite masks, float64

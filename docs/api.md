@@ -91,5 +91,6 @@ reported 278,781,609 bytes (approximately 266 MiB), and `pip check` reported no 
 requirements. Compose reached `healthy`; a real mounted-data prediction was reopened on the
 host with shape 256 × 256, float32 values, 7,452 valid pixels and matching NPZ hash. A static
 image scan found no `.pt`, `.pth`, `.npz` or raw-radar file under `/app`. The test container and
-network were removed afterward. These checks cover Linux ARM64 only; hosted AMD64 CI for the AI
-image is still pending.
+network were removed afterward. GitHub Actions run 40158067267 repeated the synthetic API
+contract successfully on Linux AMD64: 30 AI/API tests, image build, all three endpoints,
+prediction reopen, image-content scan and cleanup passed.

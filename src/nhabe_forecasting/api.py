@@ -91,7 +91,7 @@ def create_app(settings: APISettings | None = None) -> FastAPI:
 
     application = FastAPI(
         title="Nha Be Radar–Himawari Forecast API",
-        version="0.1.0",
+        version="1.0.0",
         description=(
             "Offline research API for one audited ten-minute reflectivity forecast. "
             "It is not an operational weather service."

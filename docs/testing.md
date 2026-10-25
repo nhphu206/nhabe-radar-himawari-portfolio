@@ -7,15 +7,19 @@ suite also passed both hosted CI jobs in
 [run #3](https://github.com/nhphu206/nhabe-radar-himawari-portfolio/actions/runs/38147133453),
 as confirmed by the project owner's screenshot. Docker checks took 1 minute 40 seconds.
 
-The working forecasting extension adds 46 methods (17 exact-pair/split checks, 14
-header/timeline/CLI checks and 15 normalization checks), for **67 local tests**, all passing
-on October 20, 2026. The 67-test suite has not yet been verified in Docker or hosted CI.
-The image's explicit configuration copies include forecasting/normalization policies.
+The forecasting extension adds 46 methods (17 exact-pair/split checks, 14
+header/timeline/CLI checks and 15 normalization checks), for **67 preprocessing/timing tests**.
+The full suite passes locally and in the hosted Python job. The image's explicit configuration
+copies include forecasting/normalization policies.
 
 Thirty additional Dataset/DataLoader, masked-metric, U-Net, training, frozen-test
 evaluator and inference tests pass in the dedicated PyTorch environment on October 25, 2026. They are kept
 in `tests_ai/` so the preprocessing-only Docker image and release suite do not silently
 acquire the much larger PyTorch dependency.
+
+GitHub Actions run 40158067267 passed all three Linux AMD64 jobs: the 67-test Python workflow,
+the preprocessing image checks, and the 30-test AI/API workflow with a target-free synthetic
+fixture, HTTP prediction roundtrip and image-content scan.
 
 ```bash
 python -m unittest discover -s tests -v
