@@ -133,6 +133,10 @@ Docker build, container tests, and persisted output validation on pushes and pul
 No user-supplied secrets are required. The first hosted run passed both jobs on Linux AMD64.
 See [CI details](docs/ci.md) for job order, runner architecture, and scope.
 
+The workflow extension adds a third AI/API job: 30 tests, a synthetic target-free
+fixture, CPU-only AI image build, HTTP smoke test, output reopen and image-content scan. Its
+ARM64 local simulation passed; Linux AMD64 hosted status is still pending.
+
 ## Compose sample workflow
 
 Compose keeps mount settings in versioned YAML. The configuration is read-only and synthetic
@@ -243,7 +247,7 @@ preview in a separate output directory. See [manifest schema](docs/forecasting_m
 [Vietnamese learning notes](docs/forecasting_learning_notes.md), and
 [pair configuration](configs/forecasting.yaml). The working extension has **67 locally
 passing preprocessing/timing tests plus 30 dedicated PyTorch dataset/metric/model/training,
-evaluation and inference tests**; Docker/hosted CI have not yet been rerun for these changes.
+evaluation and inference tests**. AI Docker/API checks pass locally; hosted AI CI is pending.
 Official training and one-time locked-test evaluation have completed locally. This extension is not part
 of release `v0.1-data-pipeline`.
 

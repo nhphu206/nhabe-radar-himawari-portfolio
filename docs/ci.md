@@ -14,6 +14,11 @@ confirmed by the project owner's screenshot; Docker checks took 1 minute 40 seco
 2. **Docker build and container checks:** after the Python job succeeds, build the image,
    run container tests, persist a mock sample through a writable output mount, reopen it
    through a read-only mount, and report the image size in bytes.
+3. **AI tests and forecast API image:** after the Python job succeeds, install CPU-only
+   PyTorch and pinned API dependencies, run 30 AI/API tests, create an explicitly synthetic
+   one-pair fixture with no future target file, build `Dockerfile.ai`, start the API with
+   read-only inputs, exercise health/model/predict over HTTP, reopen the NPZ/JSON output,
+   scan the image for excluded data/model files, check dependencies and record image size.
 
 The runner is `ubuntu-24.04` (standard x64 GitHub-hosted runner). The first CI run checked
 Linux AMD64 in addition to the Linux ARM64 environment already tested locally. Each job has
@@ -31,13 +36,15 @@ There is no existing lint configuration, so this initial workflow checks Python 
 `compileall` instead of introducing unreviewed style rules. Syntax checking is not linting.
 
 After committing and pushing the workflow, open the repository's **Actions** tab, select
-**Preprocessing CI**, and inspect both jobs. A green run confirms those checks for that commit;
+**Radar-Himawari CI**, and inspect all three jobs. A green run confirms those checks for that commit;
 it does not confirm real-data gridding, full meteorological quality control, or model performance.
 
 References: [GitHub Actions quickstart](https://docs.github.com/en/actions/get-started/quickstart),
 [checkout](https://github.com/actions/checkout),
 [setup-python](https://github.com/actions/setup-python).
 
-The in-progress forecasting extension currently has 67 locally passing tests. These tests
-use generated headers/temporary files and require no observation downloads or secrets.
-No hosted CI result is claimed for the unpushed forecasting changes.
+The extended workflow and synthetic AI fixture were parsed and simulated locally on ARM64:
+fixture generation, healthy API container, all three endpoints, prediction reopen and static
+image scan passed. The forecasting extension currently has 67 preprocessing/timing tests and
+30 dedicated AI/API tests passing locally. No hosted AI CI result is claimed until these
+changes run successfully on GitHub's AMD64 runner.

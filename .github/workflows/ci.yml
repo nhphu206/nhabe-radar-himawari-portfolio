@@ -1,4 +1,4 @@
-name: Preprocessing CI
+name: Radar-Himawari CI
 
 "on":
   push:
@@ -35,6 +35,8 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
+            requirements-forecasting.txt
+            requirements-api.txt
             pyproject.toml
 
       - name: Prepare source-build tools
@@ -114,3 +116,109 @@ jobs:
 
       - name: Record image size
         run: docker image inspect nhabe-preprocessing:ci --format '{{.Size}}'
+
+  ai-check:
+    name: AI tests and forecast API image
+    needs: python-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-forecasting.txt
+            requirements-api.txt
+
+      - name: Install CPU-only AI and API dependencies
+        run: |
+          python -m pip install --prefer-binary -r requirements-api.txt
+          python -m pip install --prefer-binary \
+            --index-url https://download.pytorch.org/whl/cpu torch==2.14.1
+          python -m pip check
+
+      - name: Run AI and API contract tests
+        run: |
+          python -m compileall -q src scripts tests_ai
+          python -W error -m unittest discover -s tests_ai -v
+
+      - name: Create synthetic API fixture
+        run: python scripts/20_create_synthetic_api_fixture.py --output output/ci-ai-fixture
+
+      - name: Build CPU-only forecast API image
+        run: docker build --progress=plain -f Dockerfile.ai -t nhabe-forecast-api:ci .
+
+      - name: Start container with read-only synthetic inputs
+        run: |
+          mkdir -p output/ci-ai-predictions
+          docker run --detach --name nhabe-forecast-api-ci \
+            --user "$(id -u):$(id -g)" \
+            --read-only --tmpfs /tmp \
+            --publish 127.0.0.1:8000:8000 \
+            --mount type=bind,source="$PWD/output/ci-ai-fixture",target=/data,readonly \
+            --mount type=bind,source="$PWD/output/ci-ai-fixture/forecast_pairs.csv",target=/artifacts/forecast_pairs.csv,readonly \
+            --mount type=bind,source="$PWD/output/ci-ai-fixture/normalization.json",target=/artifacts/normalization.json,readonly \
+            --mount type=bind,source="$PWD/output/ci-ai-fixture/best_model.pt",target=/models/best_model.pt,readonly \
+            --mount type=bind,source="$PWD/output/ci-ai-predictions",target=/app/output \
+            nhabe-forecast-api:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health > output/ci-ai-health.json; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs nhabe-forecast-api-ci
+          exit 1
+
+      - name: Exercise HTTP API and reopen prediction
+        run: |
+          curl --fail --silent http://127.0.0.1:8000/model-info > output/ci-ai-model.json
+          curl --fail --silent --request POST http://127.0.0.1:8000/predict \
+            --header 'Content-Type: application/json' \
+            --data '{"pair_id":"CI_SYNTHETIC_PAIR"}' > output/ci-ai-response.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+
+          sys.path.insert(0, str(Path("src").resolve()))
+          from nhabe_forecasting.inference import validate_prediction_files
+
+          root = Path("output/ci-ai-predictions/CI_SYNTHETIC_PAIR")
+          metadata = validate_prediction_files(
+              root / "CI_SYNTHETIC_PAIR_prediction.npz",
+              root / "CI_SYNTHETIC_PAIR_prediction.json",
+              "CI_SYNTHETIC_PAIR",
+          )
+          response = json.loads(Path("output/ci-ai-response.json").read_text())
+          assert metadata["future_target_array_read"] is False
+          assert response["npz_sha256"] == metadata["npz_sha256"]
+          print("Container API prediction reopened: PASS")
+          PY
+
+      - name: Confirm image excludes observations and checkpoints
+        run: |
+          if docker run --rm --entrypoint sh nhabe-forecast-api:ci -c \
+            "find /app -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.npz' -o -name '*.RAW*' \) -print -quit | grep -q ."; then
+            echo "Unexpected model or observation artifact found in image"
+            exit 1
+          fi
+          docker run --rm --entrypoint python nhabe-forecast-api:ci -m pip check
+          docker image inspect nhabe-forecast-api:ci --format '{{.Size}}'
+
+      - name: Show API logs on failure
+        if: failure()
+        run: docker logs nhabe-forecast-api-ci || true
+
+      - name: Stop API container
+        if: always()
+        run: docker rm --force nhabe-forecast-api-ci || true

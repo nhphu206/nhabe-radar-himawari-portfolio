@@ -491,3 +491,15 @@ Kết quả: image 278.781.609 byte (~266 MiB), `torch 2.14.1+cpu`, CUDA `None`,
 PASS. Compose healthy; health/model-info/predict qua HTTP thật PASS; output `[256,256]` float32
 và mask mở lại PASS. Image không chứa checkpoint, NPZ hay RAW. Đây vẫn là offline research API,
 không có auth/TLS/rate limit/real-time ingestion và không được gọi là production.
+
+## 20. Day 24 — chuẩn bị CI AI không dùng dữ liệu thật (25/10/2026)
+
+Workflow có job thứ ba riêng cho AI/API. CI tự tạo một radar và Himawari synthetic, manifest
+một pair, normalization giả và checkpoint random chưa train. File target tương lai cố ý không
+tồn tại. Fixture tự ghi `meteorological_observation=false` và `trained_checkpoint=false` để
+không bị hiểu nhầm là kết quả nghiên cứu.
+
+Job cài Torch CPU-only, chạy 30 tests, build Docker AI, khởi động API, gọi health/model/predict,
+mở lại NPZ/JSON, kiểm tra image không có data/checkpoint và luôn dọn container. Mô phỏng local
+ARM64 PASS với 34.621 valid pixels; future target không được đọc. Workflow YAML/structure PASS.
+Chưa push nên chưa được gọi là GitHub AMD64 CI PASS.
