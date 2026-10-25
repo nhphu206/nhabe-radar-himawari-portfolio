@@ -97,6 +97,14 @@ class ForecastDatasetTests(unittest.TestCase):
         self.assertEqual(batch["target"].shape, (1, 1, 256, 256))
         self.assertEqual(dataset.channel_names, ("radar_reflectivity", "radar_valid_mask"))
 
+    def test_input_item_does_not_open_future_target(self) -> None:
+        (self.root / "target.npz").unlink()
+        sample = self.dataset().input_item(0)
+        self.assertEqual(sample["inputs"].shape, (8, 256, 256))
+        self.assertNotIn("target", sample)
+        with self.assertRaises(FileNotFoundError):
+            _ = self.dataset()[0]
+
     def test_manifest_change_is_rejected_by_normalization_provenance(self) -> None:
         with self.manifest.open("a", encoding="utf-8") as handle:
             handle.write("changed")

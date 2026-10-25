@@ -1,8 +1,8 @@
-# Nha Be Radar–Himawari Preprocessing
+# Nha Be Radar–Himawari Forecasting Pipeline
 
-A research data engineering project that turns Nha Be weather radar and Himawari-9
-observations into spatially aligned arrays for future deep learning experiments.
-The research scope is August 2025. No predictive model has been trained.
+A research project that turns Nha Be weather radar and Himawari-9 observations into spatially
+aligned arrays and evaluates a controlled ten-minute reflectivity forecasting experiment.
+The research scope is August 2025; this is an offline portfolio study, not a production service.
 
 ## Pipeline
 
@@ -17,6 +17,11 @@ flowchart LR
     S --> P
     T --> P
     P --> D[Dataset index and independent audit]
+    D --> F[Leakage-safe forecast pairs]
+    F --> N[Train-only normalization]
+    N --> M[Controlled Small U-Net experiments]
+    M --> E[Locked-test evaluation]
+    M --> O[Audited NPZ and JSON prediction]
 ```
 
 Radar volumes and satellite images have different geometry, sampling, missing values,
@@ -57,8 +62,10 @@ The unchanged research configuration is [configs/pipeline.yaml](configs/pipeline
 ```text
 configs/                  Scientific configuration
 src/nhabe_preprocessing/  Reusable processing code
+src/nhabe_forecasting/    Dataset, model, evaluation and inference code
 scripts/                  Ordered processing stages and CLI wrapper
 tests/                    Data-contract unit tests
+tests_ai/                 Dedicated PyTorch contract tests
 examples/                 Synthetic sample instructions
 docs/validation/          Small research evidence snapshots
 ```
@@ -196,9 +203,9 @@ stored in the configured channel order. Grid spacing is not the native sensor re
   and in the ARM64 container; the expanded suite's hosted CI also passed both jobs.
 - Dependency versions are pinned at the application level; a complete platform lock is pending.
 - The audit validates the data contract, not meteorological accuracy or optimal CAPPI parameters.
-- No comprehensive radar quality-control chain, model training or AI model evaluation
-  has been completed. Forecast pairing/splits and train-only scaling are described below;
-  this is reflectivity forecasting, not lightning or rainfall prediction.
+- No comprehensive radar quality-control chain, multi-month replication, uncertainty estimate
+  or production deployment has been completed. This is reflectivity forecasting, not lightning
+  or rainfall prediction.
 - Raw-data redistribution is not included. A complete bundled-component license and
   corresponding-source review is required before distributing built container images.
 
@@ -235,9 +242,9 @@ it does not regenerate or overwrite preprocessing arrays. `--limit 2` provides a
 preview in a separate output directory. See [manifest schema](docs/forecasting_manifest.md),
 [Vietnamese learning notes](docs/forecasting_learning_notes.md), and
 [pair configuration](configs/forecasting.yaml). The working extension has **67 locally
-passing preprocessing/timing tests plus 21 dedicated PyTorch dataset/metric/model/training tests**;
-Docker/hosted CI have not yet been rerun for these changes. Official development training
-has completed locally, but locked-test evaluation has not begun. This extension is not part
+passing preprocessing/timing tests plus 29 dedicated PyTorch dataset/metric/model/training,
+evaluation and inference tests**; Docker/hosted CI have not yet been rerun for these changes.
+Official training and one-time locked-test evaluation have completed locally. This extension is not part
 of release `v0.1-data-pipeline`.
 
 Train-only normalization is fitted from 508 unique radar input sources and 508 unique
@@ -262,18 +269,19 @@ The first development baseline is persistence: future reflectivity is predicted 
 current radar field. On all 141 validation pairs, evaluated over 1,139,645 pixels where
 both current and target radar are valid, it obtains **MAE 5.539 dBZ** and **RMSE 8.037 dBZ**.
 Metrics are global valid-pixel-weighted values; no reflectivity threshold is applied. The
-test split remains locked. See the [baseline protocol and limitations](docs/persistence_baseline.md).
+test split was still locked at this baseline-development stage. See the
+[baseline protocol and limitations](docs/persistence_baseline.md).
 
 The controlled model candidate is a three-level Small U-Net 2D with 16 base channels,
 GroupNorm and an unrestricted one-channel regression output. The radar-only version has
 482,593 trainable parameters; the multimodal version has 483,457. Real 256×256 CPU
 forward/backward checks pass for both modes, and a multimodal Apple MPS check also passes.
-These are numerical smoke checks only: no optimizer step, checkpoint or training result exists.
-See the [model contract](docs/model.md).
+The architecture contract and early numerical smoke checks are documented in
+[the model contract](docs/model.md); official results are summarized below.
 
 Official development training is now complete for both controlled input modes. Both runs use
-508 train pairs, select checkpoints on the same 141 validation pairs and leave all 173 test
-pairs unopened. Against persistence (MAE 5.539, RMSE 8.037 dBZ), radar-only reaches MAE
+508 train pairs and select checkpoints on the same 141 validation pairs; all 173 test pairs
+remained unopened throughout training. Against persistence (MAE 5.539, RMSE 8.037 dBZ), radar-only reaches MAE
 4.495 and RMSE 6.212 dBZ; radar + Himawari reaches MAE 4.421 and RMSE 6.040 dBZ. The
 multimodal validation improvement over radar-only is 1.64% MAE and 2.77% RMSE. These are
 single-month validation results, not locked-test or operational claims. See the
@@ -284,6 +292,12 @@ The one-time locked-test evaluation was executed from clean source commit `b5b83
 4.235/5.956 dBZ; multimodal obtains **4.215/5.904 dBZ**. Multimodal reduces test RMSE by
 20.30% relative to persistence and 0.88% relative to radar-only. No model or hyperparameter
 was changed after opening test data. See the [locked-test audit](docs/final_evaluation.md).
+
+The frozen multimodal checkpoint can now generate one audited prediction without opening the
+future target array. The CLI writes float32 dBZ plus an explicit boolean validity mask and
+reopens the NPZ/JSON product before returning PASS. See the
+[single-sample inference contract](docs/inference.md). This is offline research inference,
+not a live API or operational forecast service.
 
 ## License
 

@@ -450,3 +450,18 @@ hơn. Không điều chỉnh model/hyperparameter sau khi xem test.
 
 Kết quả ủng hộ chọn multimodal làm candidate cho portfolio, không chứng minh satellite luôn
 tốt hơn vì chỉ có một seed, một tháng và một trạm. Xem [locked-test audit](final_evaluation.md).
+
+## 17. Day 20–21 — hình báo cáo và inference một mẫu (25/10/2026)
+
+Hai hình báo cáo được tạo hoàn toàn từ history/summary đã khóa: đường validation RMSE và bảng
+so sánh validation với locked test. Việc vẽ không nạp dữ liệu huấn luyện và không sửa model.
+
+Inference dùng checkpoint multimodal epoch 23. Lệnh nhận một `pair_id` đã audit, đọc radar
+hiện tại và Himawari chu kỳ trước, nhưng không mở radar target tương lai. Dự báo chuẩn hóa được
+đổi ngược về dBZ bằng mean/std radar tính chỉ từ train. NPZ đầu ra giữ `float32 [256,256]` và
+mask boolean; pixel ngoài mask radar input là NaN chứ không phải 0.
+
+Mẫu validation `NHB250822004007_RAWNDW4__to__NHB250822005007_RAWNDWB` chạy CPU PASS:
+7.292 pixel hợp lệ (11,1267%), forward khoảng 0,079 giây; NPZ/JSON mở lại đúng hash, shape,
+dtype và NaN–mask. Đây là offline inference từ manifest đã chuẩn bị, chưa phải API hay hệ thống
+nhận dữ liệu thời gian thực. Xem [inference contract](inference.md).

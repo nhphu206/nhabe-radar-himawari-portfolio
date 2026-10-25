@@ -150,16 +150,13 @@ class ForecastDataset(Dataset[dict[str, Any]]):
     def __len__(self) -> int:
         return len(self.rows)
 
-    def __getitem__(self, index: int) -> dict[str, Any]:
+    def input_item(self, index: int) -> dict[str, Any]:
+        """Build model inputs without opening the future radar target array."""
         row = self.rows[index]
         fields = self.normalization["fields"]
         radar_stats = fields["radar_reflectivity_dbz"]
         input_radar, input_mask = _read_radar(
             _source_path(self.data_root, row["input_npz_path"]),
-            float(radar_stats["mean"]), float(radar_stats["std"]),
-        )
-        target, target_mask = _read_radar(
-            _source_path(self.data_root, row["target_npz_path"]),
             float(radar_stats["mean"]), float(radar_stats["std"]),
         )
 
@@ -174,16 +171,32 @@ class ForecastDataset(Dataset[dict[str, Any]]):
             channels.append(input_mask.astype(np.float32))
 
         inputs = np.stack(channels).astype(np.float32, copy=False)
-        target = target[np.newaxis, ...]
-        target_mask = target_mask[np.newaxis, ...]
-        if not np.all(np.isfinite(inputs)) or not np.all(np.isfinite(target)):
-            raise ValueError("Model tensors must contain no NaN or infinity")
+        if not np.all(np.isfinite(inputs)):
+            raise ValueError("Model input tensor must contain no NaN or infinity")
         return {
             "inputs": torch.from_numpy(inputs),
-            "target": torch.from_numpy(target),
             "input_radar_mask": torch.from_numpy(input_mask[np.newaxis, ...]),
-            "target_mask": torch.from_numpy(target_mask),
             "pair_id": row["pair_id"],
+            "input_sample_id": row["input_sample_id"],
+            "satellite_sample_id": row["satellite_sample_id"],
             "input_time_utc": row["input_time_utc"],
             "target_time_utc": row["target_time_utc"],
         }
+
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        sample = self.input_item(index)
+        row = self.rows[index]
+        radar_stats = self.normalization["fields"]["radar_reflectivity_dbz"]
+        target, target_mask = _read_radar(
+            _source_path(self.data_root, row["target_npz_path"]),
+            float(radar_stats["mean"]), float(radar_stats["std"]),
+        )
+        target = target[np.newaxis, ...]
+        target_mask = target_mask[np.newaxis, ...]
+        if not np.all(np.isfinite(target)):
+            raise ValueError("Model target tensor must contain no NaN or infinity")
+        sample.update({
+            "target": torch.from_numpy(target),
+            "target_mask": torch.from_numpy(target_mask),
+        })
+        return sample

@@ -12,8 +12,8 @@ header/timeline/CLI checks and 15 normalization checks), for **67 local tests**,
 on October 20, 2026. The 67-test suite has not yet been verified in Docker or hosted CI.
 The image's explicit configuration copies include forecasting/normalization policies.
 
-Twenty-four additional Dataset/DataLoader, masked-metric, U-Net, training and frozen-test
-evaluator tests pass in the dedicated PyTorch environment on October 25, 2026. They are kept
+Twenty-nine additional Dataset/DataLoader, masked-metric, U-Net, training, frozen-test
+evaluator and inference tests pass in the dedicated PyTorch environment on October 25, 2026. They are kept
 in `tests_ai/` so the preprocessing-only Docker image and release suite do not silently
 acquire the much larger PyTorch dependency.
 
@@ -38,6 +38,7 @@ python -m unittest discover -s tests -v
 | `tests_ai/test_unet.py` | Repository model config, two input channel modes, output shape, unrestricted regression, masked backward gradients and invalid geometry |
 | `tests_ai/test_training.py` | Optimizer updates, overfit gate, validation mask/units, safe checkpoint roundtrip and fixed training configuration |
 | `tests_ai/test_final_evaluation.py` | Frozen checkpoint/config fingerprints, identical method ordering, locked-test summary and artifact integrity |
+| `tests_ai/test_inference.py` | Target-free input construction, multimodal checkpoint enforcement, NPZ/JSON prediction roundtrip and CLI portability |
 
 Negative tests intentionally supply invalid data. A test passes when the code rejects that
 data with the expected error, not when invalid data is accepted. The timing tests distinguish
